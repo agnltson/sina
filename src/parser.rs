@@ -1,3 +1,6 @@
 pub mod room;
 pub mod wall;
+pub mod door;
+pub mod bbox;
+pub mod skip;
 pub(crate) mod utils;

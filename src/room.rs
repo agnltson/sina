@@ -6,6 +6,7 @@ use crate::room::wall::Wall;
 use crate::room::door::Door;
 use crate::room::bbox::Bbox;
 
+#[derive(Debug)]
 pub struct Room {
     pub walls: Vec<Wall>,
     pub doors: Vec<Door>,

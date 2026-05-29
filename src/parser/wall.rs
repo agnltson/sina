@@ -1,5 +1,5 @@
 use winnow::Parser;
-use winnow::ascii::newline;
+use winnow::ascii::{line_ending, multispace0};
 use winnow::error::ModalResult;
 
 use crate::utils::vec3::Vec3;
@@ -33,6 +33,7 @@ pub fn parse_wall(input: &mut &str) -> ModalResult<Wall> {
     ", thickness=".parse_next(input)?;
     let thickness = utils::parse_float64.parse_next(input)?;
 
-    newline.parse_next(input)?;
+    utils::parse_end_of_line.parse_next(input)?;
+
     Ok(Wall::new(id, a, b))
 }

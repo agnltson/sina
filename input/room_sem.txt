@@ -1,0 +1,35 @@
+make_wall, id=0, a_x=-2.5483617782592773, a_y=-3.3396360874176025, a_z=0.021038055419921875, b_x=2.4016380310058594, b_y=-3.2896361351013184, b_z=0.021038055419921875, height=3.24, thickness=0.0
+make_wall, id=1, a_x=-2.5483617782592773, a_y=-3.3396360874176025, a_z=0.021038055419921875, b_x=-2.5983619689941406, b_y=1.760364055633545, b_z=0.021038055419921875, height=3.24, thickness=0.0
+make_wall, id=2, a_x=2.4016380310058594, a_y=-3.2896361351013184, a_z=0.021038055419921875, b_x=2.351637840270996, b_y=1.760364055633545, b_z=0.021038055419921875, height=3.24, thickness=0.0
+make_wall, id=3, a_x=-2.5983619689941406, a_y=1.760364055633545, a_z=0.021038055419921875, b_x=2.351637840270996, b_y=1.760364055633545, b_z=0.021038055419921875, height=3.24, thickness=0.0
+make_wall, id=4, a_x=-2.5983619689941406, a_y=1.9103636741638184, a_z=0.021038055419921875, b_x=5.101637840270996, b_y=1.9103636741638184, b_z=0.021038055419921875, height=3.28, thickness=0.0
+make_wall, id=5, a_x=-2.5983619689941406, a_y=1.9103636741638184, a_z=0.021038055419921875, b_x=-2.5983619689941406, b_y=6.160363674163818, b_z=0.021038055419921875, height=3.28, thickness=0.0
+make_wall, id=6, a_x=5.101637840270996, a_y=1.9103636741638184, a_z=0.021038055419921875, b_x=5.051637649536133, b_y=6.160363674163818, b_z=0.021038055419921875, height=3.28, thickness=0.0
+make_wall, id=7, a_x=-2.5983619689941406, a_y=6.160363674163818, a_z=0.021038055419921875, b_x=5.051637649536133, b_y=6.160363674163818, b_z=0.021038055419921875, height=3.28, thickness=0.0
+make_door, id=1000, wall0_id=6, wall1_id=6, position_x=5.101637840270996, position_y=3.4103636741638184, position_z=0.9710379838943481, width=1.7600000000000002, height=1.9600000000000002
+make_door, id=1001, wall0_id=7, wall1_id=7, position_x=2.851637840270996, position_y=6.160363674163818, position_z=0.9710379838943481, width=1.6800000000000002, height=1.9600000000000002
+make_door, id=1002, wall0_id=3, wall1_id=3, position_x=-1.4983620643615723, position_y=1.81036376953125, position_z=1.0210379362106323, width=1.92, height=2.04
+make_window, id=2000, wall0_id=5, wall1_id=5, position_x=-2.5983619689941406, position_y=3.760364055633545, position_z=1.3210381269454956, width=0.96, height=2.04
+make_window, id=2001, wall0_id=5, wall1_id=5, position_x=-2.5983619689941406, position_y=2.7103638648986816, position_z=1.421038031578064, width=0.96, height=1.9600000000000002
+make_window, id=2002, wall0_id=7, wall1_id=7, position_x=4.451638221740723, position_y=6.160363674163818, position_z=1.6210380792617798, width=1.0, height=2.12
+make_window, id=2003, wall0_id=1, wall1_id=1, position_x=-2.5983619689941406, position_y=-0.33963608741760254, position_z=1.7210379838943481, width=4.2, height=2.8000000000000003
+make_window, id=2004, wall0_id=0, wall1_id=0, position_x=-1.5983619689941406, position_y=-3.3396360874176025, position_z=2.271038055419922, width=1.04, height=1.2400000000000002
+make_bbox, id=3000, class=unknown, position_x=1.001638412475586, position_y=-3.1396360397338867, position_z=0.22103798389434814, angle_z=-3.1416, scale_x=0.3125, scale_y=0.375, scale_z=0.4375
+make_bbox, id=3001, class=unknown, position_x=1.9516382217407227, position_y=-1.93963623046875, position_z=0.47103798389434814, angle_z=-1.5708000000000002, scale_x=1.46875, scale_y=0.9375, scale_z=1.0
+make_bbox, id=3002, class=unknown, position_x=-2.0983619689941406, position_y=-1.0396361351013184, position_z=0.3210381269454956, angle_z=-3.1416, scale_x=0.5, scale_y=0.40625, scale_z=0.59375
+make_bbox, id=3003, class=unknown, position_x=-1.148362159729004, position_y=-0.68963623046875, position_z=0.671038031578064, angle_z=-3.1416, scale_x=0.90625, scale_y=0.53125, scale_z=1.3125
+make_bbox, id=3004, class=unknown, position_x=1.3016376495361328, position_y=-0.18963623046875, position_z=0.7210379838943481, angle_z=-1.5708000000000002, scale_x=1.625, scale_y=2.125, scale_z=1.4375
+make_bbox, id=3005, class=unknown, position_x=-0.3483619689941406, position_y=1.1603636741638184, position_z=0.2710379362106323, angle_z=-3.1416, scale_x=0.40625, scale_y=0.40625, scale_z=0.5625
+make_bbox, id=3006, class=unknown, position_x=-0.3483619689941406, position_y=1.56036376953125, position_z=0.2710379362106323, angle_z=-3.1416, scale_x=0.3125, scale_y=0.3125, scale_z=0.5625
+make_bbox, id=3007, class=unknown, position_x=4.151638031005859, position_y=2.1103639602661133, position_z=0.6210380792617798, angle_z=-3.1416, scale_x=1.0, scale_y=0.4375, scale_z=1.25
+make_bbox, id=3008, class=unknown, position_x=3.251638412475586, position_y=2.1103639602661133, position_z=0.2710379362106323, angle_z=-3.1416, scale_x=0.5625, scale_y=0.40625, scale_z=0.53125
+make_bbox, id=3009, class=unknown, position_x=0.7516384124755859, position_y=2.1603636741638184, position_z=0.42103803157806396, angle_z=-1.5708000000000002, scale_x=0.46875, scale_y=0.59375, scale_z=0.8125
+make_bbox, id=3010, class=unknown, position_x=0.051638126373291016, position_y=2.2103638648986816, position_z=0.22103798389434814, angle_z=-3.1416, scale_x=0.4375, scale_y=0.4375, scale_z=0.46875
+make_bbox, id=3011, class=unknown, position_x=0.8016376495361328, position_y=2.6603636741638184, position_z=0.3210381269454956, angle_z=-3.1416, scale_x=0.5, scale_y=0.40625, scale_z=0.59375
+make_bbox, id=3012, class=unknown, position_x=1.9016380310058594, position_y=2.9103636741638184, position_z=0.5210379362106323, angle_z=-3.1416, scale_x=1.0625, scale_y=0.9375, scale_z=1.0625
+make_bbox, id=3013, class=unknown, position_x=2.801637649536133, position_y=3.31036376953125, position_z=0.22103798389434814, angle_z=-3.1416, scale_x=0.4375, scale_y=0.4375, scale_z=0.46875
+make_bbox, id=3014, class=unknown, position_x=3.051637649536133, position_y=4.110363483428955, position_z=0.17103803157806396, angle_z=-3.1416, scale_x=0.34375, scale_y=0.34375, scale_z=0.375
+make_bbox, id=3015, class=unknown, position_x=0.8016376495361328, position_y=4.560364246368408, position_z=0.47103798389434814, angle_z=-0.4516049999999998, scale_x=0.4375, scale_y=0.5625, scale_z=0.96875
+make_bbox, id=3016, class=unknown, position_x=4.701638221740723, position_y=4.960363864898682, position_z=0.42103803157806396, angle_z=-1.5708000000000002, scale_x=1.21875, scale_y=0.8125, scale_z=0.875
+make_bbox, id=3017, class=unknown, position_x=-1.198361873626709, position_y=5.010364055633545, position_z=0.7210379838943481, angle_z=-3.1416, scale_x=1.6875, scale_y=2.34375, scale_z=1.40625
+make_bbox, id=3018, class=unknown, position_x=1.3016376495361328, position_y=5.410363674163818, position_z=0.22103798389434814, angle_z=-3.1416, scale_x=0.34375, scale_y=0.34375, scale_z=0.40625

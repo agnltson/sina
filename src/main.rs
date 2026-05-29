@@ -1,11 +1,16 @@
+use std::{fs, process};
+use std::io::prelude::*;
+
 mod parser;
 mod room;
 mod utils;
 
-use crate::parser::wall::parse_wall;
+use crate::parser::room::parse_room;
 
 fn main() {
-    let mut input = "make_wall, id=0, a_x=-2.5483617782592773, a_y=-3.3396360874176025, a_z=0.021038055419921875, b_x=2.4016380310058594, b_y=-3.2896361351013184, b_z=0.021038055419921875, height=3.24, thickness=0.0\n";
-
-    println!("parsed: {:?}", parse_wall(&mut input));
+    let filepath = "input/room_sem.txt";
+    let mut file = fs::File::open(filepath).unwrap_or_else( |e| { eprintln!("{}: '{}'", e, filepath); process::exit(1) });
+    let mut contents = String::new();
+    let _ = file.read_to_string(&mut contents);
+    println!("parsed: {:?}", parse_room(&mut contents.trim()));
 }
