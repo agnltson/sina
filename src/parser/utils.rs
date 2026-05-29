@@ -1,7 +1,6 @@
 use winnow::Parser;
 use winnow::ascii::{digit1, alpha1, float, line_ending};
 use winnow::combinator::{alt, eof};
-use winnow::token::take_while;
 use winnow::error::ModalResult;
 
 pub fn parse_id(input: &mut &str) -> ModalResult<u64> {

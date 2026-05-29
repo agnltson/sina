@@ -1,6 +1,5 @@
 use winnow::Parser;
 use winnow::token::take_until;
-use winnow::ascii::line_ending;
 use winnow::error::ModalResult;
 
 use crate::parser::utils;

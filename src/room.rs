@@ -29,7 +29,7 @@ impl Into<ConstrainedDelaunayTriangulation<Point2<f64>>> for Room {
     fn into(self) -> ConstrainedDelaunayTriangulation<Point2<f64>> {
         let mut cdt = ConstrainedDelaunayTriangulation::new();
 
-        let mut walls = Vec::new();
+        let walls = Vec::new();
         for (from, to) in walls.into_iter() {
             let _ = cdt.add_constraint_edge(from, to);
         }
