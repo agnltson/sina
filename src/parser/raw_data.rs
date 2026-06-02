@@ -1,13 +1,13 @@
 use winnow::error::ModalResult;
 
-use crate::room::Room;
+use crate::raw_data::RawData;
 
 use crate::parser::wall::parse_wall;
 use crate::parser::door::parse_door;
 use crate::parser::bbox::parse_bbox;
 use crate::parser::skip::skip_window;
 
-pub fn parse_room(input: &mut &str) -> ModalResult<Room> {
+pub fn parse_raw_data(input: &mut &str) -> ModalResult<RawData> {
     let mut walls = Vec::new();
     let mut doors = Vec::new();
     let mut bboxes = Vec::new();
@@ -28,5 +28,5 @@ pub fn parse_room(input: &mut &str) -> ModalResult<Room> {
             panic!("Unknown line: {}", input);
         }
     }
-    Ok(Room::new(walls, doors, bboxes))
+    Ok(RawData::new(walls, doors, bboxes))
 }

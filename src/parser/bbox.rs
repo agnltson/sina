@@ -2,7 +2,7 @@ use winnow::Parser;
 use winnow::error::ModalResult;
 
 use crate::utils::vec3::Vec3;
-use crate::room::bbox::Bbox;
+use crate::raw_data::bbox::Bbox;
 use crate::parser::utils;
 
 pub fn parse_bbox(input: &mut &str) -> ModalResult<Bbox> {

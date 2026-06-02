@@ -1,11 +1,10 @@
-use macroquad::prelude::*;
 use spade::{
     ConstrainedDelaunayTriangulation,
     Point2,
     Triangulation,
 };
 
-pub fn cdt_render(cdt: &ConstrainedDelaunayTriangulation<Point2<f32>>) {
+/*pub fn cdt_render(cdt: &ConstrainedDelaunayTriangulation<Point2<f32>>) {
     let scale: f32 = 75.0;
     let x_offset: f32 = 400.0;
     let y_offset: f32 = 300.0;
@@ -50,4 +49,4 @@ pub fn cdt_render(cdt: &ConstrainedDelaunayTriangulation<Point2<f32>>) {
             WHITE,
         );
     }
-}
+}*/

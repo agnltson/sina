@@ -2,7 +2,7 @@ use winnow::Parser;
 use winnow::error::ModalResult;
 
 use crate::utils::vec3::Vec3;
-use crate::room::wall::Wall;
+use crate::raw_data::wall::Wall;
 use crate::parser::utils;
 
 pub fn parse_wall(input: &mut &str) -> ModalResult<Wall> {

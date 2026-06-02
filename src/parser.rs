@@ -1,4 +1,4 @@
-pub mod room;
+pub mod raw_data;
 pub mod wall;
 pub mod door;
 pub mod bbox;

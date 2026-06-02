@@ -2,7 +2,7 @@ use winnow::Parser;
 use winnow::error::ModalResult;
 
 use crate::utils::vec3::Vec3;
-use crate::room::door::Door;
+use crate::raw_data::door::Door;
 use crate::parser::utils;
 
 pub fn parse_door(input: &mut &str) -> ModalResult<Door> {
