@@ -9,7 +9,7 @@ pub fn parse_id(input: &mut &str) -> ModalResult<u64> {
     Ok(id)
 }
 
-pub fn parse_float64(input: &mut &str) -> ModalResult<f64> {
+pub fn parse_float64(input: &mut &str) -> ModalResult<f32> {
     float.parse_next(input)
 }
 

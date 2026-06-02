@@ -1,16 +1,20 @@
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Vec3 {
-    x: f64,
-    y: f64,
-    z: f64,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 impl Vec3 {
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self {
             x: x,
             y: y,
             z: z,
         }
+    }
+
+    pub fn project_xy(&self) -> (f32, f32) {
+        (self.x, self.y)
     }
 }
