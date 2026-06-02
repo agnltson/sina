@@ -1,11 +1,11 @@
 use winnow::Parser;
 use winnow::error::ModalResult;
 
-use crate::utils::vec3::Vec3;
-use crate::raw_data::bbox::Bbox;
+use crate::utils::Vec3;
+use crate::raw_data::raw_bbox::RawBBox;
 use crate::parser::utils;
 
-pub fn parse_bbox(input: &mut &str) -> ModalResult<Bbox> {
+pub fn parse_bbox(input: &mut &str) -> ModalResult<RawBBox> {
     "make_bbox".parse_next(input)?;
     ", id=".parse_next(input)?;
     let id = utils::parse_id.parse_next(input)?;
@@ -34,5 +34,5 @@ pub fn parse_bbox(input: &mut &str) -> ModalResult<Bbox> {
 
     utils::parse_end_of_line.parse_next(input)?;
 
-    Ok(Bbox::new(id, position, angle, scale))
+    Ok(RawBBox::new(id, position, angle, scale))
 }

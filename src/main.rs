@@ -5,6 +5,8 @@ use rerun::{RecordingStreamBuilder, Points2D};
 
 mod parser;
 mod raw_data;
+mod data;
+mod room_graph;
 mod utils;
 
 use crate::parser::raw_data::parse_raw_data;

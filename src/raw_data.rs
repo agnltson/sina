@@ -1,20 +1,16 @@
-pub(crate) mod wall;
-pub(crate) mod door;
-pub(crate) mod bbox;
-
-use crate::raw_data::wall::Wall;
-use crate::raw_data::door::Door;
-use crate::raw_data::bbox::Bbox;
+pub(crate) mod raw_wall;
+pub(crate) mod raw_door;
+pub(crate) mod raw_bbox;
 
 #[derive(Debug, Clone)]
 pub struct RawData {
-    pub walls: Vec<Wall>,
-    pub doors: Vec<Door>,
-    pub bboxes: Vec<Bbox>,
+    pub walls: Vec<raw_wall::RawWall>,
+    pub doors: Vec<raw_door::RawDoor>,
+    pub bboxes: Vec<raw_bbox::RawBBox>,
 }
 
 impl RawData {
-    pub fn new(walls: Vec<Wall>, doors: Vec<Door>, bboxes: Vec<Bbox>) -> Self {
+    pub fn new(walls: Vec<raw_wall::RawWall>, doors: Vec<raw_door::RawDoor>, bboxes: Vec<raw_bbox::RawBBox>) -> Self {
         Self {
             walls: walls,
             doors: doors,

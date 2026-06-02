@@ -1,11 +1,11 @@
 use winnow::Parser;
 use winnow::error::ModalResult;
 
-use crate::utils::vec3::Vec3;
-use crate::raw_data::door::Door;
+use crate::utils::Vec3;
+use crate::raw_data::raw_door::RawDoor;
 use crate::parser::utils;
 
-pub fn parse_door(input: &mut &str) -> ModalResult<Door> {
+pub fn parse_door(input: &mut &str) -> ModalResult<RawDoor> {
     "make_door".parse_next(input)?;
     ", id=".parse_next(input)?;
     let id = utils::parse_id.parse_next(input)?;
@@ -32,5 +32,5 @@ pub fn parse_door(input: &mut &str) -> ModalResult<Door> {
 
     utils::parse_end_of_line.parse_next(input)?;
 
-    Ok(Door::new(id, wall0_id, wall1_id, position, width, height))
+    Ok(RawDoor::new(id, wall0_id, wall1_id, position, width, height))
 }

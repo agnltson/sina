@@ -1,26 +1,26 @@
-use crate::utils::vec3::Vec3;
+use crate::utils::Vec3;
 
 #[derive(Debug, Copy, Clone)]
-pub struct Bbox {
+pub struct RawBBox {
     id: u64,
-    pub position: Vec3,
+    pub center: Vec3,
     pub angle: f32,
-    pub scale: Vec3,
+    pub size: Vec3,
 }
 
-impl Bbox {
-    pub fn new(id: u64, position: Vec3, angle: f32, scale: Vec3) -> Self {
+impl RawBBox {
+    pub fn new(id: u64, center: Vec3, angle: f32, size: Vec3) -> Self {
         Self {
             id,
-            position,
+            center,
             angle,
-            scale,
+            size,
         }
     }
 
     pub fn ground_corners(&self) -> [(f32, f32); 4] {
-        let hx = self.scale.x * 0.5;
-        let hy = self.scale.y * 0.5;
+        let hx = self.size.x * 0.5;
+        let hy = self.size.y * 0.5;
 
         let c = self.angle.cos();
         let s = self.angle.sin();
@@ -33,7 +33,7 @@ impl Bbox {
         ];
 
         local_corners.map(|(x, y)| {
-            (self.position.x + x * c - y * s, self.position.y + x * s + y * c )
+            (self.center.x + x * c - y * s, self.center.y + x * s + y * c )
         })
     }
 }

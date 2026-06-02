@@ -1,15 +1,15 @@
 use spade::{Point2};
 
-use crate::utils::vec3::Vec3;
+use crate::utils::Vec3;
 
 #[derive(Debug, Copy, Clone)]
-pub struct Wall {
+pub struct RawWall {
     pub id: u64,
     pub start: Vec3,
     pub end: Vec3,
 }
 
-impl Wall {
+impl RawWall {
     pub fn new(id: u64, start: Vec3, end: Vec3) -> Self {
         Self {
             id,

@@ -1,7 +1,7 @@
-use crate::utils::vec3::Vec3;
+use crate::utils::Vec3;
 
 #[derive(Debug, Copy, Clone)]
-pub struct Door {
+pub struct RawDoor {
     pub id: u64,
     pub wall0_id: u64,
     wall1_id: u64,
@@ -10,7 +10,7 @@ pub struct Door {
     height: f32,
 }
 
-impl Door {
+impl RawDoor {
     pub fn new(id: u64, wall0_id: u64, wall1_id: u64, position: Vec3, width: f32, height: f32) -> Self {
         Self {
             id,
