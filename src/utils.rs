@@ -1,3 +1,5 @@
+use std::ops::{Sub, Add};
+
 use ordered_float::OrderedFloat;
 
 #[derive(Debug, Copy, Clone)]
@@ -56,8 +58,23 @@ impl Point {
             y: OrderedFloat((self.y / Self::EPS).round()) * Self::EPS,
         }
     }
-}
 
+    pub fn dot(self, other: Self) -> OrderedFloat<f32> {
+        self.x * other.x + self.y * other.y
+    }
+
+    pub fn length(self) -> OrderedFloat<f32> {
+        OrderedFloat(self.dot(self).sqrt())
+    }
+
+    pub fn to_unit(self) -> Self {
+        let len = self.length();
+        Self {
+            x: self.x / len,
+            y: self.y / len,
+        }
+    }
+}
 
 impl From<Vec3> for Point {
     fn from(vec: Vec3) -> Self {
@@ -68,5 +85,27 @@ impl From<Vec3> for Point {
 impl From<(OrderedFloat<f32>, OrderedFloat<f32>)> for Point {
     fn from(xy: (OrderedFloat<f32>, OrderedFloat<f32>)) -> Self {
         Point::new(xy)
+    }
+}
+
+impl Sub for Point {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self::Output {
+        Self {
+            x: self.x - other.y,
+            y: self.y - other.y,
+        }
+    }
+}
+
+impl Add for Point {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self::Output {
+        Self {
+            x: self.x + other.y,
+            y: self.y + other.y,
+        }
     }
 }

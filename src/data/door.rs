@@ -3,16 +3,19 @@ use ordered_float::OrderedFloat;
 use crate::utils::Vec3;
 use crate::utils::Point;
 
+#[derive(Debug, Clone)]
 pub struct Door {
     pub pos: Point,
     pub width: OrderedFloat<f32>,
+    pub wall_id: usize,
 }
 
 impl Door {
-    pub fn new(pos: Point, width: OrderedFloat<f32>) -> Self {
+    pub fn new(pos: Point, width: OrderedFloat<f32>, wall_id: usize) -> Self {
         Self {
             pos,
             width,
+            wall_id,
         }
     }
 }
@@ -24,6 +27,7 @@ impl From<RawDoor> for Door {
         Self {
             pos: <Vec3 as Into<Point>>::into(raw_door.position).snap(),
             width: raw_door.width,
+            wall_id: raw_door.wall0_id,
         }
     }
 }

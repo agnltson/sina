@@ -3,6 +3,7 @@ use ordered_float::OrderedFloat;
 use crate::utils::Vec3;
 use crate::utils::Point;
 
+#[derive(Debug, Clone)]
 pub struct BBox {
     pub center: Point,
     pub size: (OrderedFloat<f32>, OrderedFloat<f32>),

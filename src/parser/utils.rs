@@ -4,9 +4,9 @@ use winnow::combinator::{alt, eof};
 use winnow::error::ModalResult;
 use ordered_float::OrderedFloat;
 
-pub fn parse_id(input: &mut &str) -> ModalResult<u64> {
+pub fn parse_id(input: &mut &str) -> ModalResult<usize> {
     let digits = digit1.parse_next(input)?;
-    let id = digits.parse::<u64>().unwrap();
+    let id = digits.parse::<usize>().unwrap();
     Ok(id)
 }
 

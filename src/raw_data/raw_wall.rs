@@ -4,13 +4,13 @@ use crate::utils::Vec3;
 
 #[derive(Debug, Copy, Clone)]
 pub struct RawWall {
-    pub id: u64,
+    pub id: usize,
     pub start: Vec3,
     pub end: Vec3,
 }
 
 impl RawWall {
-    pub fn new(id: u64, start: Vec3, end: Vec3) -> Self {
+    pub fn new(id: usize, start: Vec3, end: Vec3) -> Self {
         Self {
             id,
             start,

@@ -13,6 +13,12 @@ pub struct Data {
     pub bboxes: Vec<BBox>,
 }
 
+impl Data {
+    pub fn extract_bboxes(&self) -> Vec<BBox> {
+        self.bboxes.clone()
+    }
+}
+
 use crate::raw_data::RawData;
 
 impl From<RawData> for Data {
