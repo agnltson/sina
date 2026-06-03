@@ -1,46 +1,92 @@
 use std::collections::HashMap;
 use ordered_float::OrderedFloat;
+use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation};
 
 use crate::room_graph::{RoomGraph, Edge};
 use crate::utils::Point;
 use crate::data::bbox::BBox;
 
-struct RoomCDT {
-    constrained: Vec<(Point, Point)>,
+pub struct RoomCDT {
+    cdt: ConstrainedDelaunayTriangulation<Point2<f32>>,
 }
 
 impl From<RoomGraph> for RoomCDT {
     fn from(room_graph: RoomGraph) -> Self {
-        Self {
-            constrained: Vec::new(),
+        let mut cdt = ConstrainedDelaunayTriangulation::<Point2<f32>>::new();
+
+        for edge in room_graph.edges.iter() {
+            let _ = cdt.add_constraint_edge(
+                edge.a.into(),
+                edge.b.into(),
+            );
         }
+
+        Self { cdt }
     }
 }
 
-fn same_boundary(id_to_points: HashMap<usize, Point>, w1: &Edge, w2: &Edge) -> bool {
-    const CLOSENESS_THRESHOLD: OrderedFloat<f32> = OrderedFloat(0.25);
-    const PARALLELNESS_THRESHOLD: OrderedFloat<f32> = OrderedFloat(1.0);
+use rerun::{LineStrips2D, Points2D, RecordingStream};
 
-    let dir1 = w1.b - w1.a;
-    let dir2 = w2.b - w2.a;
+impl RoomCDT {
+    pub fn render_rerun(
+        &self,
+        rec: &RecordingStream,
+    ) -> Result<(), Box<dyn std::error::Error>> {
 
-    let len1 = dir1.length();
-    let len2 = dir2.length();
+        let vertices: Vec<[f32; 2]> = self
+            .cdt
+            .vertices()
+            .map(|v| {
+                let p = v.position();
+                [p.x, p.y]
+            })
+            .collect();
 
-    if len1 < OrderedFloat(f32::EPSILON) || len2 < OrderedFloat(f32::EPSILON) {
-        return false;
+        rec.log(
+            "cdt/vertices",
+            &Points2D::new(vertices),
+        )?;
+
+        let mut tri_edges = Vec::new();
+
+        for edge in self.cdt.undirected_edges() {
+            let verts = edge.vertices();
+
+            let a = verts[0].position();
+            let b = verts[1].position();
+
+            tri_edges.push(vec![
+                [a.x, a.y],
+                [b.x, b.y],
+            ]);
+        }
+
+        rec.log(
+            "cdt/triangulation",
+            &LineStrips2D::new(tri_edges),
+        )?;
+
+        let mut constraints = Vec::new();
+
+        for edge in self.cdt.undirected_edges() {
+            if edge.is_constraint_edge() {
+                let verts = edge.vertices();
+
+                let a = verts[0].position();
+                let b = verts[1].position();
+
+                constraints.push(vec![
+                    [a.x, a.y],
+                    [b.x, b.y],
+                ]);
+            }
+        }
+
+        rec.log(
+            "cdt/constraints",
+            &LineStrips2D::new(constraints),
+        )?;
+
+        Ok(())
     }
-
-    let unit1 = dir1.to_unit();
-    let unit2 = dir2.to_unit();
-
-    let parallel = OrderedFloat(unit1.dot(unit2).abs()) < PARALLELNESS_THRESHOLD;
-
-    if !parallel {
-        return false;
-    }
-
-    let offset = OrderedFloat((w1.a.x - w2.a.x).abs() + (w1.a.y - w2.a.y).abs());
-
-    offset < CLOSENESS_THRESHOLD
 }

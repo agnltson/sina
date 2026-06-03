@@ -1,6 +1,6 @@
 use std::ops::{Sub, Add};
-
 use ordered_float::OrderedFloat;
+use spade::{Point2};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vec3 {
@@ -73,6 +73,12 @@ impl Point {
             x: self.x / len,
             y: self.y / len,
         }
+    }
+}
+
+impl Into<Point2<f32>> for Point {
+    fn into(self) -> Point2<f32> {
+        Point2::new(self.x.into_inner(), self.y.into_inner())
     }
 }
 

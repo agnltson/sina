@@ -23,11 +23,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let room_data: data::Data = room_raw_data.into();
     let bboxes = room_data.extract_bboxes();
     let room_graph: room_graph::RoomGraph = room_data.into();
+    let cdt: room_cdt::RoomCDT = room_graph.into();
 
     let rec = RecordingStreamBuilder::new("pathfinding")
         .spawn()?;
 
-    let _ = room_graph.render_rerun(&rec);
+    //let _ = room_graph.render_rerun(&rec);
+    let _ = cdt.render_rerun(&rec);
 
     let mut t: f32 = 0.0;
 
