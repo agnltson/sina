@@ -1,14 +1,16 @@
+use ordered_float::OrderedFloat;
+
 use crate::utils::Vec3;
 use crate::utils::Point;
 
 pub struct BBox {
     pub center: Point,
-    pub size: (f32, f32),
-    pub angle: f32,
+    pub size: (OrderedFloat<f32>, OrderedFloat<f32>),
+    pub angle: OrderedFloat<f32>,
 }
 
 impl BBox {
-    pub fn new(center: Point, size: (f32, f32), angle: f32) -> Self {
+    pub fn new(center: Point, size: (OrderedFloat<f32>, OrderedFloat<f32>), angle: OrderedFloat<f32>) -> Self {
         Self {
             center,
             size,

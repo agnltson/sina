@@ -1,13 +1,15 @@
+use ordered_float::OrderedFloat;
+
 use crate::utils::Vec3;
 use crate::utils::Point;
 
 pub struct Door {
     pub pos: Point,
-    pub width: f32,
+    pub width: OrderedFloat<f32>,
 }
 
 impl Door {
-    pub fn new(pos: Point, width: f32) -> Self {
+    pub fn new(pos: Point, width: OrderedFloat<f32>) -> Self {
         Self {
             pos,
             width,

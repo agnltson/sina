@@ -1,15 +1,17 @@
+use ordered_float::OrderedFloat;
+
 use crate::utils::Vec3;
 
 #[derive(Debug, Copy, Clone)]
 pub struct RawBBox {
     id: u64,
     pub center: Vec3,
-    pub angle: f32,
+    pub angle: OrderedFloat<f32>,
     pub size: Vec3,
 }
 
 impl RawBBox {
-    pub fn new(id: u64, center: Vec3, angle: f32, size: Vec3) -> Self {
+    pub fn new(id: u64, center: Vec3, angle: OrderedFloat<f32>, size: Vec3) -> Self {
         Self {
             id,
             center,
@@ -18,7 +20,7 @@ impl RawBBox {
         }
     }
 
-    pub fn ground_corners(&self) -> [(f32, f32); 4] {
+    pub fn ground_corners(&self) -> [(OrderedFloat<f32>, OrderedFloat<f32>); 4] {
         let hx = self.size.x * 0.5;
         let hy = self.size.y * 0.5;
 

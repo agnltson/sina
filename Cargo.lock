@@ -9341,6 +9341,7 @@ dependencies = [
 name = "sima"
 version = "0.1.0"
 dependencies = [
+ "ordered-float 5.3.0",
  "rerun",
  "spade",
  "winnow",
