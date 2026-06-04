@@ -4,7 +4,7 @@ use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation};
 
 use crate::room_graph::{RoomGraph, Edge};
 use crate::utils::Point;
-use crate::data::bbox::BBox;
+use crate::obstacles::Obstacles;
 
 pub struct RoomCDT {
     cdt: ConstrainedDelaunayTriangulation<Point2<f32>>,
@@ -28,6 +28,25 @@ impl From<RoomGraph> for RoomCDT {
 use rerun::{LineStrips2D, Points2D, RecordingStream};
 
 impl RoomCDT {
+    pub fn add_obstacles(&mut self, obstacles: &Obstacles) {
+        for poly in obstacles.vertices.iter() {
+            let points: Vec<Point2<f32>> = poly.iter().map(|p| (*p).into()).collect();
+            let len = points.len();
+            for i in 0..len {
+                let a = points[i];
+                let b = points[(i + 1) % len];
+                let (Ok(va), Ok(vb)) = (self.cdt.insert(a), self.cdt.insert(b)) else {
+                    continue;
+                };
+                if self.cdt.can_add_constraint(va, vb) {
+                    self.cdt.add_constraint(va, vb);
+                } else {
+                    println!("point ({:?}, {:?}) can't be added", a, b);
+                }
+            }
+        }
+    }
+
     pub fn render_rerun(
         &self,
         rec: &RecordingStream,

@@ -17,6 +17,10 @@ impl Data {
     pub fn extract_bboxes(&self) -> Vec<BBox> {
         self.bboxes.clone()
     }
+
+    pub fn extract_walls(&self) -> Vec<Wall> {
+        self.walls.clone()
+    }
 }
 
 use crate::raw_data::RawData;

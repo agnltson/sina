@@ -1,6 +1,7 @@
 use crate::utils::Vec3;
 use crate::utils::Point;
 
+#[derive(Debug, Clone)]
 pub struct Wall {
     pub id: usize,
     pub a: Point,

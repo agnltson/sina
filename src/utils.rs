@@ -99,7 +99,7 @@ impl Sub for Point {
 
     fn sub(self, other: Self) -> Self::Output {
         Self {
-            x: self.x - other.y,
+            x: self.x - other.x,
             y: self.y - other.y,
         }
     }
@@ -110,7 +110,7 @@ impl Add for Point {
 
     fn add(self, other: Self) -> Self::Output {
         Self {
-            x: self.x + other.y,
+            x: self.x + other.x,
             y: self.y + other.y,
         }
     }

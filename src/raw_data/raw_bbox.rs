@@ -19,23 +19,4 @@ impl RawBBox {
             size,
         }
     }
-
-    pub fn ground_corners(&self) -> [(OrderedFloat<f32>, OrderedFloat<f32>); 4] {
-        let hx = self.size.x * 0.5;
-        let hy = self.size.y * 0.5;
-
-        let c = self.angle.cos();
-        let s = self.angle.sin();
-
-        let local_corners = [
-            (-hx, -hy),
-            (-hx,  hy),
-            ( hx,  hy),
-            ( hx, -hy),
-        ];
-
-        local_corners.map(|(x, y)| {
-            (self.center.x + x * c - y * s, self.center.y + x * s + y * c )
-        })
-    }
 }

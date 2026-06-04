@@ -8,6 +8,7 @@ mod raw_data;
 mod data;
 mod room_graph;
 mod room_cdt;
+mod obstacles;
 mod utils;
 
 use crate::parser::raw_data::parse_raw_data;
@@ -21,30 +22,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let room_raw_data = parse_raw_data(&mut contents.trim()).unwrap_or_else( |e| { eprintln!("{}", e); process::exit(1) });
     let room_data: data::Data = room_raw_data.into();
+
+    let walls = room_data.extract_walls();
     let bboxes = room_data.extract_bboxes();
+    let bboxes_polygons: Vec<Vec<_>> = bboxes.iter().map(|b| b.into_polygon()).collect();
+
+    let obstacles = obstacles::Obstacles::from_clipping(bboxes_polygons, &walls);
+
     let room_graph: room_graph::RoomGraph = room_data.into();
-    let cdt: room_cdt::RoomCDT = room_graph.into();
+    let mut cdt: room_cdt::RoomCDT = room_graph.into();
+
+    cdt.add_obstacles(&obstacles);
 
     let rec = RecordingStreamBuilder::new("pathfinding")
         .spawn()?;
 
-    //let _ = room_graph.render_rerun(&rec);
     let _ = cdt.render_rerun(&rec);
-
-    let mut t: f32 = 0.0;
-
-    loop {
-        // ping-pong between 0 and 1
-        let x = (t.sin() * 0.5 + 0.5) * 10.0;
-        let y = 0.0;
-
-        rec.log(
-            "debug/dot",
-            &Points2D::new([[x, y]]),
-        )?;
-
-        t += 0.05;
-
-        sleep(Duration::from_millis(16));
-    }
+    //let _ = obstacles.render_rerun(&rec);
+    Ok(())
 }

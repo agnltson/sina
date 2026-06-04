@@ -1360,6 +1360,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "clipper2"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88f87fde54c74a3f45d04e691a14deb3eaebc85c3c889d59eca9129aa3894c5a"
+dependencies = [
+ "clipper2c-sys",
+ "libc",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "clipper2c-sys"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0afb0f7cef3e89b98fb687395b7d12c70521871f3a876465641ed5aeb450b9a8"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
 name = "codespan-reporting"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9341,6 +9362,7 @@ dependencies = [
 name = "sima"
 version = "0.1.0"
 dependencies = [
+ "clipper2",
  "ordered-float 5.3.0",
  "rerun",
  "spade",

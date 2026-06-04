@@ -18,6 +18,25 @@ impl BBox {
             angle,
         }
     }
+
+    pub fn into_polygon(&self) -> Vec<Point> {
+        let hx = self.size.0 * 0.5;
+        let hy = self.size.1 * 0.5;
+
+        let c = self.angle.cos();
+        let s = self.angle.sin();
+
+        let local_corners = [
+            (-hx, -hy),
+            (-hx,  hy),
+            ( hx,  hy),
+            ( hx, -hy),
+        ];
+
+        local_corners.into_iter().map(|(x, y)| {
+            Point::new((self.center.x + x * c - y * s, self.center.y + x * s + y * c ))
+        }).collect()
+    }
 }
 
 use crate::raw_data::raw_bbox::RawBBox;
