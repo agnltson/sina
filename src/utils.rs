@@ -1,4 +1,4 @@
-use std::ops::{Sub, Add};
+use std::ops::{Sub, Add, Mul, Div};
 use ordered_float::OrderedFloat;
 use spade::{Point2};
 
@@ -50,7 +50,7 @@ impl Point {
         }
     }
 
-    const EPS: OrderedFloat<f32> = OrderedFloat(0.01);
+    const EPS: OrderedFloat<f32> = OrderedFloat(0.05);
 
     pub fn snap(self) -> Self {
         Self {
@@ -79,6 +79,12 @@ impl Point {
 impl Into<Point2<f32>> for Point {
     fn into(self) -> Point2<f32> {
         Point2::new(self.x.into_inner(), self.y.into_inner())
+    }
+}
+
+impl Into<(f64, f64)> for Point {
+    fn into(self) -> (f64, f64) {
+        (self.x.into_inner() as f64, self.y.into_inner() as f64)
     }
 }
 

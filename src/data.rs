@@ -24,8 +24,10 @@ impl Data {
 }
 
 use crate::raw_data::RawData;
+use ordered_float::OrderedFloat;
 
 impl From<RawData> for Data {
+
     fn from(raw_data: RawData) -> Self {
         Self {
             walls: raw_data.walls.iter().map(|w| (*w).into()).collect(),
