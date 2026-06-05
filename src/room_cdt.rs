@@ -1,26 +1,37 @@
 use std::collections::HashMap;
 use ordered_float::OrderedFloat;
 use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation};
-
-use crate::room_graph::{RoomGraph, Edge};
+use crate::room_topology::{RoomTopology, Polygon};
 use crate::utils::Point;
-use crate::obstacles::Obstacles;
 
 pub struct RoomCDT {
     cdt: ConstrainedDelaunayTriangulation<Point2<f32>>,
 }
 
-impl From<RoomGraph> for RoomCDT {
-    fn from(room_graph: RoomGraph) -> Self {
-        let mut cdt = ConstrainedDelaunayTriangulation::<Point2<f32>>::new();
-
-        for edge in room_graph.edges.iter() {
-            let _ = cdt.add_constraint_edge(
-                edge.a.into(),
-                edge.b.into(),
-            );
+fn insert_polygon(cdt: &mut ConstrainedDelaunayTriangulation<Point2<f32>>, polygon: &Polygon) {
+    let len = polygon.vertices.len();
+    if len < 2 { return; }
+    for i in 0..len {
+        let a: Point2<f32> = polygon.vertices[i].into();
+        let b: Point2<f32> = polygon.vertices[(i + 1) % len].into();
+        let (Ok(va), Ok(vb)) = (cdt.insert(a), cdt.insert(b)) else {
+            continue;
+        };
+        if cdt.can_add_constraint(va, vb) {
+            cdt.add_constraint(va, vb);
         }
+    }
+}
 
+impl From<RoomTopology> for RoomCDT {
+    fn from(room_topo: RoomTopology) -> Self {
+        let mut cdt = ConstrainedDelaunayTriangulation::<Point2<f32>>::new();
+        for polygon in &room_topo.borders {
+            insert_polygon(&mut cdt, polygon);
+        }
+        for polygon in &room_topo.holes {
+            insert_polygon(&mut cdt, polygon);
+        }
         Self { cdt }
     }
 }
@@ -28,25 +39,6 @@ impl From<RoomGraph> for RoomCDT {
 use rerun::{LineStrips2D, Points2D, RecordingStream};
 
 impl RoomCDT {
-    pub fn add_obstacles(&mut self, obstacles: &Obstacles) {
-        for poly in obstacles.vertices.iter() {
-            let points: Vec<Point2<f32>> = poly.iter().map(|p| (*p).into()).collect();
-            let len = points.len();
-            for i in 0..len {
-                let a = points[i];
-                let b = points[(i + 1) % len];
-                let (Ok(va), Ok(vb)) = (self.cdt.insert(a), self.cdt.insert(b)) else {
-                    continue;
-                };
-                if self.cdt.can_add_constraint(va, vb) {
-                    self.cdt.add_constraint(va, vb);
-                } else {
-                    println!("point ({:?}, {:?}) can't be added", a, b);
-                }
-            }
-        }
-    }
-
     pub fn render_rerun(
         &self,
         rec: &RecordingStream,
