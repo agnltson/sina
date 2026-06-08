@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use ordered_float::OrderedFloat;
 use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation};
-use crate::room_topology::{RoomTopology, Polygon};
-use crate::utils::Point;
+use crate::room_topology::RoomTopology;
+use crate::utils::{Point, Polygon};
 
 pub struct RoomCDT {
-    cdt: ConstrainedDelaunayTriangulation<Point2<f32>>,
+    pub cdt: ConstrainedDelaunayTriangulation<Point2<f32>>,
 }
 
 fn insert_polygon(cdt: &mut ConstrainedDelaunayTriangulation<Point2<f32>>, polygon: &Polygon) {
@@ -23,8 +23,8 @@ fn insert_polygon(cdt: &mut ConstrainedDelaunayTriangulation<Point2<f32>>, polyg
     }
 }
 
-impl From<RoomTopology> for RoomCDT {
-    fn from(room_topo: RoomTopology) -> Self {
+impl From<&RoomTopology> for RoomCDT {
+    fn from(room_topo: &RoomTopology) -> Self {
         let mut cdt = ConstrainedDelaunayTriangulation::<Point2<f32>>::new();
         for polygon in &room_topo.borders {
             insert_polygon(&mut cdt, polygon);
@@ -33,6 +33,21 @@ impl From<RoomTopology> for RoomCDT {
             insert_polygon(&mut cdt, polygon);
         }
         Self { cdt }
+    }
+}
+
+impl From<&RoomCDT> for Vec<Polygon> {
+    fn from(room_cdt: &RoomCDT) -> Self {
+        room_cdt.cdt.inner_faces().map(|face| {
+            let vertices = face.vertices().map(|v| {
+                let p = v.position();
+                Point {
+                    x: OrderedFloat(p.x),
+                    y: OrderedFloat(p.y),
+                }
+            }).to_vec();
+            Polygon { vertices }
+        }).collect()
     }
 }
 

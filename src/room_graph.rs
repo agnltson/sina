@@ -7,12 +7,12 @@ use crate::data::{Data, door::Door, bbox::BBox};
 use crate::raw_data::RawData;
 
 pub struct Node {
-    pub id: usize,
+    pub id: i64,
     pub pos: Point,
 }
 
 impl Node {
-    pub fn new(id: usize, pos: Point) -> Self {
+    pub fn new(id: i64, pos: Point) -> Self {
         Self {
             id,
             pos,
@@ -22,14 +22,14 @@ impl Node {
 
 #[derive(Debug, Clone)]
 pub struct Edge {
-    pub id: usize,
+    pub id: i64,
     pub a: Point,
     pub b: Point,
     pub doors: Vec<Door>,
 }
 
 impl Edge {
-    pub fn new(id: usize, a: Point, b: Point, doors: Vec<Door>) -> Self {
+    pub fn new(id: i64, a: Point, b: Point, doors: Vec<Door>) -> Self {
         Self {
             id,
             a,
@@ -40,12 +40,12 @@ impl Edge {
 }
 
 pub struct RoomGraph {
-    pub nodes: HashMap<usize, Point>,
+    pub nodes: HashMap<i64, Point>,
     pub edges: Vec<Edge>,
 }
 
 impl RoomGraph {
-    pub fn new(nodes: HashMap<usize, Point>, edges: Vec<Edge>) -> Self {
+    pub fn new(nodes: HashMap<i64, Point>, edges: Vec<Edge>) -> Self {
         Self {
             nodes,
             edges,

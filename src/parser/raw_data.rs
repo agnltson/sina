@@ -23,7 +23,7 @@ pub fn parse_raw_data(input: &mut &str) -> ModalResult<RawData> {
             doors.push(door);
         } else if let Ok(bbox) = parse_bbox(input) {
             bboxes.push(bbox);
-        } else if let Ok(_) = skip_window(input) {
+        } else if let Ok(()) = skip_window(input) {
         } else {
             panic!("Unknown line: {}", input);
         }

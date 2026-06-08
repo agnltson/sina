@@ -121,3 +121,58 @@ impl Add for Point {
         }
     }
 }
+
+impl PartialOrd for Point {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for Point {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.x.cmp(&other.x).then(self.y.cmp(&other.y))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Polygon {
+    pub vertices: Vec<Point>,
+}
+
+impl Polygon {
+    fn new(vertices: Vec<Point>) -> Self {
+        Self { vertices }
+    }
+}
+
+impl Polygon {
+    pub fn contains(&self, point: Point) -> bool {
+        let n = self.vertices.len();
+        let mut inside = false;
+        let mut j = n - 1;
+        for i in 0..n {
+            let vi = self.vertices[i];
+            let vj = self.vertices[j];
+            let xi = vi.x.into_inner();
+            let yi = vi.y.into_inner();
+            let xj = vj.x.into_inner();
+            let yj = vj.y.into_inner();
+            let px = point.x.into_inner();
+            let py = point.y.into_inner();
+            if ((yi > py) != (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
+                inside = !inside;
+            }
+            j = i;
+        }
+        inside
+    }
+
+    pub fn centroid(&self) -> Point {
+        let n = self.vertices.len() as f32;
+        let x = self.vertices.iter().map(|v| v.x.into_inner()).sum::<f32>() / n;
+        let y = self.vertices.iter().map(|v| v.y.into_inner()).sum::<f32>() / n;
+        Point {
+            x: OrderedFloat(x),
+            y: OrderedFloat(y),
+        }
+    }
+}

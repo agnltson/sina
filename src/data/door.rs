@@ -7,11 +7,11 @@ use crate::utils::Point;
 pub struct Door {
     pub pos: Point,
     pub width: OrderedFloat<f32>,
-    pub wall_id: usize,
+    pub wall_id: i64,
 }
 
 impl Door {
-    pub fn new(pos: Point, width: OrderedFloat<f32>, wall_id: usize) -> Self {
+    pub fn new(pos: Point, width: OrderedFloat<f32>, wall_id: i64) -> Self {
         Self {
             pos,
             width,

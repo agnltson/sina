@@ -7,27 +7,7 @@ use i_overlay::i_float::float::compatible::FloatPointCompatible;
 
 use crate::data::{Data, bbox::BBox};
 use crate::room_graph::{RoomGraph, Edge};
-use crate::utils::Point;
-
-impl FloatPointCompatible for Point {
-    type Scalar = f32;
-    fn from_xy(x: f32, y: f32) -> Self {
-        Point { x: x.into(), y: y.into() }
-    }
-    fn x(&self) -> f32 { self.x.into_inner() }
-    fn y(&self) -> f32 { self.y.into_inner() }
-}
-
-#[derive(Debug, Clone)]
-pub struct Polygon {
-    pub vertices: Vec<Point>,
-}
-
-impl Polygon {
-    fn new(vertices: Vec<Point>) -> Self {
-        Self { vertices }
-    }
-}
+use crate::utils::{Point, Polygon};
 
 impl From<Vec<Point>> for Polygon {
     fn from(vertices: Vec<Point>) -> Self {
@@ -50,12 +30,29 @@ impl From<BBox> for Polygon {
     }
 }
 
+impl FloatPointCompatible for Point {
+    type Scalar = f32;
+    fn from_xy(x: f32, y: f32) -> Self {
+        Point { x: x.into(), y: y.into() }
+    }
+    fn x(&self) -> f32 { self.x.into_inner() }
+    fn y(&self) -> f32 { self.y.into_inner() }
+}
+
 pub struct RoomTopology {
     pub borders: Vec<Polygon>,
     pub holes: Vec<Polygon>,
 }
 
 impl RoomTopology {
+    pub fn filter_polygons(&self, polygons: Vec<Polygon>) -> Vec<Polygon> {
+        polygons.into_iter().filter(|poly| {
+            let c = poly.centroid();
+            let inside_border = self.borders.iter().any(|b| b.contains(c));
+            let inside_hole = self.holes.iter().any(|h| h.contains(c));
+            inside_border && !inside_hole
+        }).collect()
+    }
     fn new(borders: Vec<Polygon>, holes: Vec<Polygon>) -> Self {
         Self { borders, holes }
     }

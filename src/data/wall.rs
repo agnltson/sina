@@ -3,13 +3,13 @@ use crate::utils::Point;
 
 #[derive(Debug, Clone)]
 pub struct Wall {
-    pub id: usize,
+    pub id: i64,
     pub a: Point,
     pub b: Point,
 }
 
 impl Wall {
-    pub fn new(id: usize, a: Point, b: Point) -> Self {
+    pub fn new(id: i64, a: Point, b: Point) -> Self {
         Self {
             id,
             a,
