@@ -53,8 +53,8 @@ impl RoomGraph {
     }
 }
 
-impl From<Data> for RoomGraph {
-    fn from(data: Data) -> Self {
+impl From<&Data> for RoomGraph {
+    fn from(data: &Data) -> Self {
         let mut node_id = 0;
         let mut edge_id = 0;
 
@@ -62,7 +62,7 @@ impl From<Data> for RoomGraph {
         let mut id_to_point = HashMap::new();
         let mut point_to_id = HashMap::new();
 
-        let walls = data.walls;
+        let walls = data.walls.clone();
 
         for (id, start, end) in walls.iter().map(|w| (w.id, w.a, w.b)){
 
@@ -106,7 +106,7 @@ impl From<Data> for RoomGraph {
 impl From<RawData> for RoomGraph {
     fn from(raw_data: RawData) -> Self {
         let data: Data = raw_data.into();
-        data.into()
+        (&data).into()
     }
 }
 

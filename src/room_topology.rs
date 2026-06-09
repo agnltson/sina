@@ -87,16 +87,26 @@ impl RoomTopology {
     }
 }
 
-impl From<Data> for RoomTopology {
-    fn from(data: Data) -> Self {
+impl From<&Data> for RoomTopology {
+    fn from(data: &Data) -> Self {
         let bboxes = data.bboxes.clone();
         let poly_bboxes: Vec<Polygon> = bboxes.iter().map(|b| b.clone().into()).collect();
         let room_graph: RoomGraph = data.into();
         let room_polygons = graph_into_polygons(&room_graph);
         let doors_polygons = extract_doors_as_polygons(&room_graph);
+
         let borders = clip_doors(room_polygons, doors_polygons);
-        let holes = clip_holes(poly_bboxes, &borders);
-        let holes = merge_holes(holes);
+
+        let borders: Vec<Polygon> = borders.iter()
+            .filter_map(shrink_polygon)
+            .collect();
+
+        let holes: Vec<Polygon> = poly_bboxes.iter()
+            .filter_map(grow_polygon)
+            .collect();
+
+        let (borders, holes) = merge_polygons(borders, holes);
+
         RoomTopology::new(borders, holes)
     }
 }
@@ -104,34 +114,6 @@ impl From<Data> for RoomTopology {
 
 fn polygon_to_contour(polygon: &Polygon) -> Vec<Point> {
     polygon.vertices.clone()
-}
-
-fn clip_holes(holes: Vec<Polygon>, borders: &[Polygon]) -> Vec<Polygon> {
-    // shrink borders inward so clipping has a margin
-    let shrunk_borders: Vec<Polygon> = borders.iter()
-        .filter_map(shrink_polygon)
-        .collect();
-    let clip: Vec<Vec<[f32; 2]>> = shrunk_borders.iter()
-        .map(|p| p.vertices.iter().map(|v| [v.x.into_inner(), v.y.into_inner()]).collect())
-        .collect();
-    let mut result_polygons = Vec::new();
-    for hole in holes {
-        let subj: Vec<Vec<[f32; 2]>> = vec![
-            hole.vertices.iter().map(|v| [v.x.into_inner(), v.y.into_inner()]).collect()
-        ];
-        let result = subj.overlay(&clip, OverlayRule::Intersect, FillRule::EvenOdd);
-        for shape in result {
-            if let Some(outer) = shape.into_iter().next() {
-                result_polygons.push(
-                    outer.into_iter()
-                        .map(|p| Point { x: p[0].into(), y: p[1].into() })
-                        .collect::<Vec<_>>()
-                        .into()
-                );
-            }
-        }
-    }
-    result_polygons
 }
 
 fn clip_doors(borders: Vec<Polygon>, doors: Vec<Polygon>) -> Vec<Polygon> {
@@ -152,7 +134,6 @@ fn merge_holes(holes: Vec<Polygon>) -> Vec<Polygon> {
             .map(|v| [v.x.into_inner(), v.y.into_inner()])
             .collect()
     ];
-
     for hole in holes.into_iter().skip(1) {
         let next: Vec<Vec<[f32; 2]>> = vec![
             hole.vertices.iter()
@@ -164,15 +145,62 @@ fn merge_holes(holes: Vec<Polygon>) -> Vec<Polygon> {
             .flat_map(|shape| shape.into_iter())
             .collect();
     }
-
     accumulated.into_iter()
-        .map(|contour| {
-            contour.into_iter()
+        .map(|contour| contour.into_iter()
+            .map(|p| Point { x: p[0].into(), y: p[1].into() })
+            .collect::<Vec<_>>()
+            .into()
+        )
+        .collect()
+}
+
+fn merge_polygons(borders: Vec<Polygon>, holes: Vec<Polygon>) -> (Vec<Polygon>, Vec<Polygon>) {
+    if holes.is_empty() { return (borders, vec![]); }
+
+    let merged_holes = merge_holes(holes);
+
+    let borders_2d: Vec<Vec<[f32; 2]>> = borders.iter()
+        .map(|p| p.vertices.iter().map(|v| [v.x.into_inner(), v.y.into_inner()]).collect())
+        .collect();
+
+    let mut independent_holes: Vec<Vec<[f32; 2]>> = vec![];
+    let mut border_overlapping_holes: Vec<Vec<[f32; 2]>> = vec![];
+
+    for hole in &merged_holes {
+        let hole_2d: Vec<Vec<[f32; 2]>> = vec![
+            hole.vertices.iter().map(|v| [v.x.into_inner(), v.y.into_inner()]).collect()
+        ];
+        let difference = hole_2d.overlay(&borders_2d, OverlayRule::Difference, FillRule::EvenOdd);
+        if difference.is_empty() {
+            independent_holes.push(hole.vertices.iter().map(|v| [v.x.into_inner(), v.y.into_inner()]).collect());
+        } else {
+            border_overlapping_holes.push(hole.vertices.iter().map(|v| [v.x.into_inner(), v.y.into_inner()]).collect());
+        }
+    }
+
+    let new_borders = if border_overlapping_holes.is_empty() {
+        borders
+    } else {
+        borders_2d.overlay(&border_overlapping_holes, OverlayRule::Difference, FillRule::EvenOdd)
+            .into_iter()
+            .filter_map(|shape| shape.into_iter().next())
+            .map(|contour| contour.into_iter()
                 .map(|p| Point { x: p[0].into(), y: p[1].into() })
                 .collect::<Vec<_>>()
                 .into()
-        })
-        .collect()
+            )
+            .collect()
+    };
+
+    let new_holes: Vec<Polygon> = independent_holes.into_iter()
+        .map(|contour| contour.into_iter()
+            .map(|p| Point { x: p[0].into(), y: p[1].into() })
+            .collect::<Vec<_>>()
+            .into()
+        )
+        .collect();
+
+    (new_borders, new_holes)
 }
 
 pub fn extract_doors_as_polygons(graph: &RoomGraph) -> Vec<Polygon> {
@@ -228,19 +256,31 @@ pub fn graph_into_polygons(graph: &RoomGraph) -> Vec<Polygon> {
 use i_overlay::mesh::outline::offset::OutlineOffset;
 use i_overlay::mesh::style::{LineJoin, OutlineStyle};
 
-const CLIP_MARGIN: f32 = 0.02; // shrink border inward by this amount
+const WALL_MARGIN: f32 = 0.1;    // shrink borders inward
+const OBJECT_MARGIN: f32 = 0.1;  // grow holes outward
 
 fn shrink_polygon(polygon: &Polygon) -> Option<Polygon> {
-    let contour: Vec<[f32; 2]> = polygon.vertices.iter()
+    offset_polygon(polygon, -WALL_MARGIN)
+}
+
+fn grow_polygon(polygon: &Polygon) -> Option<Polygon> {
+    offset_polygon(polygon, OBJECT_MARGIN)
+}
+
+fn offset_polygon(polygon: &Polygon, amount: f32) -> Option<Polygon> {
+    let mut contour: Vec<[f32; 2]> = polygon.vertices.iter()
         .map(|p| [p.x.into_inner(), p.y.into_inner()])
         .collect();
-    let shape = vec![contour];
-    // negative offset = inward shrink
-    let style = OutlineStyle::new(-CLIP_MARGIN).line_join(LineJoin::Miter(2.0));
-    let result = shape.outline(&style);
-    result.into_iter()
-        .next()  // take first shape
-        .and_then(|s| s.into_iter().next())  // take outer contour
+
+    if signed_area(&contour) < 0.0 {
+        contour.reverse();
+    }
+
+    let style = OutlineStyle::new(amount).line_join(LineJoin::Miter(2.0));
+    vec![contour].outline(&style)
+        .into_iter()
+        .next()
+        .and_then(|s| s.into_iter().next())
         .map(|contour| {
             contour.into_iter()
                 .map(|p| Point { x: p[0].into(), y: p[1].into() })
@@ -249,3 +289,13 @@ fn shrink_polygon(polygon: &Polygon) -> Option<Polygon> {
         })
 }
 
+fn signed_area(contour: &[[f32; 2]]) -> f32 {
+    let n = contour.len();
+    let mut area = 0.0f32;
+    for i in 0..n {
+        let a = contour[i];
+        let b = contour[(i + 1) % n];
+        area += a[0] * b[1] - b[0] * a[1];
+    }
+    area / 2.0
+}
