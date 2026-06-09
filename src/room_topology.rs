@@ -46,13 +46,17 @@ pub struct RoomTopology {
 
 impl RoomTopology {
     pub fn filter_polygons(&self, polygons: Vec<Polygon>) -> Vec<Polygon> {
-        polygons.into_iter().filter(|poly| {
-            let c = poly.centroid();
-            let inside_border = self.borders.iter().any(|b| b.contains(c));
-            let inside_hole = self.holes.iter().any(|h| h.contains(c));
-            inside_border && !inside_hole
-        }).collect()
+
+        polygons.into_iter()
+            .filter(|poly| {
+                let c = poly.centroid();
+                let inside_border = self.borders.iter().any(|b| b.contains(c));
+                let inside_hole = self.holes.iter().any(|h| h.contains(c));
+                inside_border && !inside_hole
+            })
+            .collect()
     }
+
     fn new(borders: Vec<Polygon>, holes: Vec<Polygon>) -> Self {
         Self { borders, holes }
     }

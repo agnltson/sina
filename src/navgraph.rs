@@ -9,6 +9,8 @@ use crate::navmesh::NavMesh;
 pub struct NavNode {
     pub centroid: Point,
     pub polygon_index: usize,
+    pub area: f32,
+    pub min_altitude: f32,
 }
 
 pub struct NavEdge {
@@ -27,6 +29,8 @@ impl From<&NavMesh> for NavGraph {
             NavNode {
                 centroid: poly.centroid(),
                 polygon_index: i,
+                area: poly.area(),
+                min_altitude: poly.min_altitude(),
             }
         }).collect();
 

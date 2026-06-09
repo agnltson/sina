@@ -175,4 +175,31 @@ impl Polygon {
             y: OrderedFloat(y),
         }
     }
+
+    pub fn area(&self) -> f32 {
+        let n = self.vertices.len();
+        let mut sum = 0.0f32;
+        for i in 0..n {
+            let a = self.vertices[i];
+            let b = self.vertices[(i + 1) % n];
+            sum += a.x.into_inner() * b.y.into_inner();
+            sum -= b.x.into_inner() * a.y.into_inner();
+        }
+        sum.abs() / 2.0
+    }
+
+    pub fn min_altitude(&self) -> f32 {
+        let v = &self.vertices;
+        assert!(v.len() == 3, "only for triangles");
+        let a = v[0]; let b = v[1]; let c = v[2];
+        let area = self.area();
+        // altitude = 2 * area / base
+        let ab = (b - a).length().into_inner();
+        let bc = (c - b).length().into_inner();
+        let ca = (a - c).length().into_inner();
+        let alt_a = 2.0 * area / bc;
+        let alt_b = 2.0 * area / ca;
+        let alt_c = 2.0 * area / ab;
+        alt_a.min(alt_b).min(alt_c)
+    }
 }

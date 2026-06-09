@@ -32,4 +32,5 @@ make_bbox, id=3003, class=unknown, position_x=4.399108409881592, position_y=-3.1
 make_bbox, id=3004, class=unknown, position_x=1.7491087913513184, position_y=-2.7648539543151855, position_z=-1.3140950202941895, angle_z=-1.1191949999999995, scale_x=1.28125, scale_y=0.40625, scale_z=0.5
 make_bbox, id=3005, class=unknown, position_x=2.899108409881592, position_y=-2.2148542404174805, position_z=-0.6640949249267578, angle_z=-1.1191949999999995, scale_x=2.1875, scale_y=2.125, scale_z=1.71875
 make_bbox, id=3006, class=unknown, position_x=3.149108409881592, position_y=-0.4148540496826172, position_z=-1.1640949249267578, angle_z=-1.0995600000000003, scale_x=0.875, scale_y=0.59375, scale_z=0.84375
-make_bbox, id=3007, class=unknown, position_x=-0.85089111328125, position_y=3.6851463317871094, position_z=-1.3140950202941895, angle_z=-2.6899949999999997, scale_x=0.59375, scale_y=0.4375, scale_z=0.5
+make_bbox, id=3007, class=unknown, position_x=0.19910860061645508, position_y=0.48514556884765625, position_z=-1.3140950202941895, angle_z=-1.1388300000000005, scale_x=0.46875, scale_y=0.34375, scale_z=0.46875
+make_bbox, id=3008, class=unknown, position_x=-0.3008913993835449, position_y=4.0351457595825195, position_z=-1.3140950202941895, angle_z=-1.1388300000000005, scale_x=0.5, scale_y=0.40625, scale_z=0.46875
