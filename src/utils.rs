@@ -176,6 +176,26 @@ impl Polygon {
         }
     }
 
+    pub fn intersect(&self, segment: (Point, Point)) -> bool {
+        let n = self.vertices.len();
+
+        for i in 0..n {
+            let a = segment.0;
+            let b = segment.1;
+
+            let c = self.vertices[i];
+            let d = self.vertices[(i + 1) % n];
+
+            if orient(a, b, c) * orient(a, b, d) <= 0.0 &&
+               orient(c, d, a) * orient(c, d, b) <= 0.0
+            {
+                return true;
+            }
+        }
+
+        false
+    }
+
     pub fn area(&self) -> f32 {
         let n = self.vertices.len();
         let mut sum = 0.0f32;
@@ -202,4 +222,9 @@ impl Polygon {
         let alt_c = 2.0 * area / ab;
         alt_a.min(alt_b).min(alt_c)
     }
+}
+
+fn orient(p: Point, q: Point, r: Point) -> f32 {
+    (q.x.into_inner() - p.x.into_inner())*(r.y.into_inner() - p.y.into_inner()) -
+    (q.y.into_inner() - p.y.into_inner())*(r.x.into_inner() - p.x.into_inner())
 }

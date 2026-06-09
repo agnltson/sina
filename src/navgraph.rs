@@ -1,10 +1,13 @@
+use std::{env, fs, process, thread::sleep, time::Duration};
+use std::io::prelude::*;
 use ordered_float::OrderedFloat;
 use std::collections::BinaryHeap;
 use std::cmp::Reverse;
 use rerun::{Points2D, RecordingStream, LineStrips2D, Color};
 
 use crate::utils::Point;
-use crate::navmesh::NavMesh;
+use crate::parse_raw_data;
+use crate::{raw_data::RawData, data::Data, room_topology::RoomTopology, navmesh::NavMesh};
 
 pub struct NavNode {
     pub centroid: Point,
@@ -21,11 +24,24 @@ pub struct NavEdge {
 pub struct NavGraph {
     pub nodes: Vec<NavNode>,
     pub edges: Vec<Vec<NavEdge>>,
+    room_data: Data,
+    room_topology: RoomTopology,
+    navmesh: NavMesh,
 }
 
-impl From<&NavMesh> for NavGraph {
-    fn from(mesh: &NavMesh) -> Self {
-        let nodes: Vec<NavNode> = mesh.polygons.iter().enumerate().map(|(i, poly)| {
+impl NavGraph {
+    pub fn new(filepath: &str) -> Self {
+        let mut file = fs::File::open(&filepath).unwrap_or_else( |e| { eprintln!("{}: '{}'", e, filepath); process::exit(1) });
+        let mut contents = String::new();
+        let _ = file.read_to_string(&mut contents);
+
+        let room_raw_data = parse_raw_data(&mut contents.trim()).unwrap_or_else( |e| { eprintln!("{}", e); process::exit(1) });
+        let room_data: Data = room_raw_data.into();
+
+        let room_topology: RoomTopology = (&room_data).into();
+        let navmesh: NavMesh = (&room_topology).into();
+
+        let nodes: Vec<NavNode> = navmesh.polygons.iter().enumerate().map(|(i, poly)| {
             NavNode {
                 centroid: poly.centroid(),
                 polygon_index: i,
@@ -34,7 +50,7 @@ impl From<&NavMesh> for NavGraph {
             }
         }).collect();
 
-        let edges: Vec<Vec<NavEdge>> = mesh.adjacency.iter().enumerate().map(|(i, neighbours)| {
+        let edges: Vec<Vec<NavEdge>> = navmesh.adjacency.iter().enumerate().map(|(i, neighbours)| {
             neighbours.iter().map(|&j| {
                 let a = nodes[i].centroid;
                 let b = nodes[j].centroid;
@@ -43,15 +59,17 @@ impl From<&NavMesh> for NavGraph {
             }).collect()
         }).collect();
 
-        NavGraph { nodes, edges }
+        NavGraph { nodes, edges, room_data, room_topology, navmesh }
     }
-}
 
-impl NavGraph {
     pub fn render_rerun(
         &self,
         rec: &RecordingStream,
     ) -> Result<(), Box<dyn std::error::Error>> {
+
+        let _ = self.room_data.render_rerun(&rec);
+        let _ = self.room_topology.render_rerun(&rec);
+        let _ = self.navmesh.render_rerun(&rec);
 
         // -------------------------
         // NODES (centroids)
@@ -118,7 +136,7 @@ impl NavGraph {
                     }
                 }
                 path.reverse();
-                return Some(path);
+                return Some(self.path_straightening(path));
             }
 
             // stale check against f_score: recompute expected f for u
@@ -159,5 +177,31 @@ impl NavGraph {
         }
 
         Ok(())
+    }
+
+    fn path_straightening(&self, path: Vec<usize>) -> Vec<usize> {
+        if path.len() <= 2 { return path; }
+
+        let n = path.len();
+        let mut result = vec![path[0]];
+        let mut current = 0;
+
+        while current < n - 1 {
+            // find the furthest node we can reach from current without obstruction
+            let mut furthest = current + 1;
+            for next in (current + 2)..n {
+                let a = self.nodes[path[current]].centroid;
+                let b = self.nodes[path[next]].centroid;
+                if !self.room_topology.is_segment_intersecting((a, b)) {
+                    furthest = next;
+                } else {
+                    break;
+                }
+            }
+            result.push(path[furthest]);
+            current = furthest;
+        }
+
+        result
     }
 }

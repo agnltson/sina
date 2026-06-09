@@ -85,6 +85,20 @@ impl RoomTopology {
         rec.log("topology/holes", &LineStrips2D::new(hole_strips).with_colors([Color::from_rgb(255, 100, 100)]))?;
         Ok(())
     }
+
+    pub fn is_segment_intersecting(&self, segment: (Point, Point)) -> bool {
+        for poly in &self.borders {
+            if poly.intersect(segment) {
+                return true;
+            }
+        }
+        for poly in &self.holes {
+            if poly.intersect(segment) {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 impl From<&Data> for RoomTopology {
