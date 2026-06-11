@@ -1,6 +1,6 @@
 use ordered_float::OrderedFloat;
 
-use crate::utils::Vec3;
+use crate::navigation::utils::Vec3;
 
 #[derive(Debug, Copy, Clone)]
 pub struct RawDoor {

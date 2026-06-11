@@ -2,7 +2,7 @@ use winnow::Parser;
 use winnow::token::take_until;
 use winnow::error::ModalResult;
 
-use crate::parser::utils;
+use super::utils;
 
 // We skip the windows as it is not usefull for us
 pub fn skip_window(input: &mut &str) -> ModalResult<()> {

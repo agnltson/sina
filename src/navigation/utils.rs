@@ -1,6 +1,7 @@
-use std::ops::{Sub, Add, Mul, Div};
+use std::ops::{Sub, Add};
 use ordered_float::OrderedFloat;
 use spade::{Point2};
+use rerun::{Points2D, RecordingStream};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vec3 {
@@ -19,19 +20,10 @@ impl Vec3 {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Hash)]
 pub struct Point {
     pub x: OrderedFloat<f32>,
     pub y: OrderedFloat<f32>,
-}
-
-use std::hash::{Hash, Hasher};
-
-impl Hash for Point {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.x.to_bits().hash(state);
-        self.y.to_bits().hash(state);
-    }
 }
 
 impl PartialEq for Point {
@@ -74,6 +66,22 @@ impl Point {
             y: self.y / len,
         }
     }
+
+    pub fn render_rerun(
+        &self,
+        rec: &RecordingStream,
+        log_path: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        rec.log(
+            log_path.to_owned() + "point",
+            &Points2D::new([[
+                self.x.into_inner(),
+                self.y.into_inner(),
+            ]]),
+        )?;
+
+        Ok(())
+    }
 }
 
 impl Into<Point2<f32>> for Point {
@@ -85,6 +93,12 @@ impl Into<Point2<f32>> for Point {
 impl Into<(f64, f64)> for Point {
     fn into(self) -> (f64, f64) {
         (self.x.into_inner() as f64, self.y.into_inner() as f64)
+    }
+}
+
+impl From<(f64, f64)> for Point {
+    fn from((x, y): (f64, f64)) -> Self {
+        Point::new((OrderedFloat(x as f32), OrderedFloat(x as f32)))
     }
 }
 

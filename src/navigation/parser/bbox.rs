@@ -1,9 +1,9 @@
 use winnow::Parser;
 use winnow::error::ModalResult;
 
-use crate::utils::Vec3;
-use crate::raw_data::raw_bbox::RawBBox;
-use crate::parser::utils;
+use crate::navigation::utils::Vec3;
+use crate::navigation::raw_data::raw_bbox::RawBBox;
+use super::utils;
 
 pub fn parse_bbox(input: &mut &str) -> ModalResult<RawBBox> {
     "make_bbox".parse_next(input)?;

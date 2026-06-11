@@ -5,9 +5,9 @@ use i_overlay::core::overlay_rule::OverlayRule;
 use i_overlay::float::single::SingleFloatOverlay;
 use i_overlay::i_float::float::compatible::FloatPointCompatible;
 
-use crate::data::{Data, bbox::BBox};
-use crate::room_graph::{RoomGraph, Edge};
-use crate::utils::{Point, Polygon};
+use super::data::{Data, bbox::BBox};
+use super::room_graph::{RoomGraph, Edge};
+use super::utils::{Point, Polygon};
 
 impl From<Vec<Point>> for Polygon {
     fn from(vertices: Vec<Point>) -> Self {
@@ -61,7 +61,11 @@ impl RoomTopology {
         Self { borders, holes }
     }
 
-    pub fn render_rerun(&self, rec: &RecordingStream) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn render_rerun(
+        &self,
+        rec: &RecordingStream,
+        log_path: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut border_strips = Vec::new();
         for border in &self.borders {
             if border.vertices.is_empty() { continue; }
@@ -71,7 +75,10 @@ impl RoomTopology {
             strip.push([border.vertices[0].x.into_inner(), border.vertices[0].y.into_inner()]);
             border_strips.push(strip);
         }
-        rec.log("topology/borders", &LineStrips2D::new(border_strips).with_colors([Color::from_rgb(0, 200, 255)]))?;
+        rec.log(
+            String::from(log_path) + "topology/borders",
+            &LineStrips2D::new(border_strips).with_colors([Color::from_rgb(0, 200, 255)])
+        )?;
 
         let mut hole_strips = Vec::new();
         for hole in &self.holes {
@@ -82,7 +89,10 @@ impl RoomTopology {
             strip.push([hole.vertices[0].x.into_inner(), hole.vertices[0].y.into_inner()]);
             hole_strips.push(strip);
         }
-        rec.log("topology/holes", &LineStrips2D::new(hole_strips).with_colors([Color::from_rgb(255, 100, 100)]))?;
+        rec.log(
+            String::from(log_path) + "topology/holes",
+            &LineStrips2D::new(hole_strips).with_colors([Color::from_rgb(255, 100, 100)])
+        )?;
         Ok(())
     }
 

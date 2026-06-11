@@ -1,9 +1,9 @@
 use winnow::Parser;
 use winnow::error::ModalResult;
 
-use crate::utils::Vec3;
-use crate::raw_data::raw_door::RawDoor;
-use crate::parser::utils;
+use crate::navigation::utils::Vec3;
+use crate::navigation::raw_data::raw_door::RawDoor;
+use super::utils;
 
 pub fn parse_door(input: &mut &str) -> ModalResult<RawDoor> {
     "make_door".parse_next(input)?;

@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 use ordered_float::OrderedFloat;
 use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation};
-use crate::room_topology::RoomTopology;
-use crate::utils::{Point, Polygon};
+use super::room_topology::RoomTopology;
+use super::utils::{Point, Polygon};
 
 pub struct RoomCDT {
     pub cdt: ConstrainedDelaunayTriangulation<Point2<f32>>,
@@ -57,6 +56,7 @@ impl RoomCDT {
     pub fn render_rerun(
         &self,
         rec: &RecordingStream,
+        log_path: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
 
         let vertices: Vec<[f32; 2]> = self
@@ -69,7 +69,7 @@ impl RoomCDT {
             .collect();
 
         rec.log(
-            "cdt/vertices",
+            String::from(log_path) + "cdt/vertices",
             &Points2D::new(vertices),
         )?;
 
@@ -88,7 +88,7 @@ impl RoomCDT {
         }
 
         rec.log(
-            "cdt/triangulation",
+            String::from(log_path) + "cdt/triangulation",
             &LineStrips2D::new(tri_edges),
         )?;
 
@@ -109,7 +109,7 @@ impl RoomCDT {
         }
 
         rec.log(
-            "cdt/constraints",
+            String::from(log_path) + "cdt/constraints",
             &LineStrips2D::new(constraints),
         )?;
 

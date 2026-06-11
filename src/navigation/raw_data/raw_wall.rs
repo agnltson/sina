@@ -1,6 +1,4 @@
-use spade::{Point2};
-
-use crate::utils::Vec3;
+use crate::navigation::utils::Vec3;
 
 #[derive(Debug, Copy, Clone)]
 pub struct RawWall {

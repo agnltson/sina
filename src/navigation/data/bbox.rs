@@ -1,7 +1,8 @@
 use ordered_float::OrderedFloat;
 
-use crate::utils::Vec3;
-use crate::utils::Point;
+use crate::navigation::utils::Vec3;
+use crate::navigation::utils::Point;
+use crate::navigation::raw_data::raw_bbox::RawBBox;
 
 #[derive(Debug, Clone)]
 pub struct BBox {
@@ -19,8 +20,6 @@ impl BBox {
         }
     }
 }
-
-use crate::raw_data::raw_bbox::RawBBox;
 
 impl From<RawBBox> for BBox {
     fn from(raw_bbox: RawBBox) -> Self {

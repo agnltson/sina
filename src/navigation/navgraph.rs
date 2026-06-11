@@ -1,13 +1,13 @@
-use std::{env, fs, process, thread::sleep, time::Duration};
+use std::{fs, process};
 use std::io::prelude::*;
 use ordered_float::OrderedFloat;
 use std::collections::BinaryHeap;
 use std::cmp::Reverse;
 use rerun::{Points2D, RecordingStream, LineStrips2D, Color};
 
-use crate::utils::Point;
-use crate::parse_raw_data;
-use crate::{raw_data::RawData, data::Data, room_topology::RoomTopology, navmesh::NavMesh};
+use super::utils::Point;
+use super::parser::parse_raw_data;
+use super::{data::Data, room_topology::RoomTopology, navmesh::NavMesh};
 
 pub struct NavNode {
     pub centroid: Point,
@@ -65,11 +65,12 @@ impl NavGraph {
     pub fn render_rerun(
         &self,
         rec: &RecordingStream,
+        log_path: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
 
-        let _ = self.room_data.render_rerun(&rec);
-        let _ = self.room_topology.render_rerun(&rec);
-        let _ = self.navmesh.render_rerun(&rec);
+        let _ = self.room_data.render_rerun(&rec, log_path);
+        let _ = self.room_topology.render_rerun(&rec, log_path);
+        let _ = self.navmesh.render_rerun(&rec, log_path);
 
         // -------------------------
         // NODES (centroids)
@@ -84,7 +85,7 @@ impl NavGraph {
             .collect();
 
         rec.log(
-            "navgraph/nodes",
+            String::from(log_path) + "navgraph/nodes",
             &Points2D::new(points),
         )?;
 
@@ -107,7 +108,7 @@ impl NavGraph {
         }
 
         rec.log(
-            "navgraph/edges",
+            String::from(log_path) + "navgraph/edges",
             &LineStrips2D::new(edge_lines)
                 .with_colors([Color::from_rgb(80, 80, 255)]), // blue-ish
         )?;
@@ -162,6 +163,7 @@ impl NavGraph {
         &self,
         path: &[usize],
         rec: &RecordingStream,
+        log_path: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Waypoint centroids as points
         let points: Vec<[f32; 2]> = path.iter().map(|&i| {
@@ -173,7 +175,7 @@ impl NavGraph {
 
         // Connect them as a line strip
         if path.len() >= 2 {
-            rec.log("nav/path", &LineStrips2D::new(vec![points]))?;
+            rec.log(String::from(log_path) + "nav/path", &LineStrips2D::new(vec![points]))?;
         }
 
         Ok(())

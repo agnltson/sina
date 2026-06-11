@@ -1,10 +1,9 @@
 use std::collections::HashMap;
-use rerun::{LineStrips2D, Points2D, RecordingStream, Color};
-use ordered_float::OrderedFloat;
+use rerun::{LineStrips2D, Points2D, RecordingStream};
 
-use crate::utils::Point;
-use crate::data::{Data, door::Door, bbox::BBox};
-use crate::raw_data::RawData;
+use super::utils::Point;
+use super::data::{Data, door::Door};
+use super::raw_data::RawData;
 
 pub struct Node {
     pub id: i64,
@@ -79,7 +78,7 @@ impl From<&Data> for RoomGraph {
             }
 
             // Set edges without dup
-            let (start_node_id, end_node_id) = (point_to_id.get(&start).unwrap(), point_to_id.get(&end).unwrap());
+            let (_start_node_id, _end_node_id) = (point_to_id.get(&start).unwrap(), point_to_id.get(&end).unwrap());
 
             let edges_id: Vec<_> =
                 edges.iter()
@@ -114,6 +113,7 @@ impl RoomGraph {
     pub fn render_rerun(
         &self,
         rec: &RecordingStream,
+        log_path: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
 
         // -------------------------
@@ -129,7 +129,7 @@ impl RoomGraph {
         }
 
         rec.log(
-            "graph/nodes",
+            String::from(log_path) + "graph/nodes",
             &Points2D::new(points),
         )?;
 
@@ -149,7 +149,7 @@ impl RoomGraph {
         }
 
         rec.log(
-            "graph/edges",
+            String::from(log_path) + "graph/edges",
             &LineStrips2D::new(lines),
         )?;
 

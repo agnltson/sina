@@ -1,7 +1,8 @@
 use ordered_float::OrderedFloat;
 
-use crate::utils::Vec3;
-use crate::utils::Point;
+use crate::navigation::utils::Vec3;
+use crate::navigation::utils::Point;
+use crate::navigation::raw_data::raw_door::RawDoor;
 
 #[derive(Debug, Clone)]
 pub struct Door {
@@ -19,8 +20,6 @@ impl Door {
         }
     }
 }
-
-use crate::raw_data::raw_door::RawDoor;
 
 impl From<RawDoor> for Door {
     fn from(raw_door: RawDoor) -> Self {

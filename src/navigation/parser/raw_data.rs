@@ -1,11 +1,10 @@
 use winnow::error::ModalResult;
 
-use crate::raw_data::RawData;
-
-use crate::parser::wall::parse_wall;
-use crate::parser::door::parse_door;
-use crate::parser::bbox::parse_bbox;
-use crate::parser::skip::skip_window;
+use crate::navigation::raw_data::RawData;
+use super::wall::parse_wall;
+use super::door::parse_door;
+use super::bbox::parse_bbox;
+use super::skip::skip_window;
 
 pub fn parse_raw_data(input: &mut &str) -> ModalResult<RawData> {
     let mut walls = Vec::new();

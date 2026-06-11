@@ -1,5 +1,6 @@
-use crate::utils::Vec3;
-use crate::utils::Point;
+use crate::navigation::utils::Vec3;
+use crate::navigation::utils::Point;
+use crate::navigation::raw_data::raw_wall::RawWall;
 
 #[derive(Debug, Clone)]
 pub struct Wall {
@@ -17,8 +18,6 @@ impl Wall {
         }
     }
 }
-
-use crate::raw_data::raw_wall::RawWall;
 
 impl From<RawWall> for Wall {
     fn from(raw_wall: RawWall) -> Self {

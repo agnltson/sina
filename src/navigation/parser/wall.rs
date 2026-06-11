@@ -1,9 +1,9 @@
 use winnow::Parser;
 use winnow::error::ModalResult;
 
-use crate::utils::Vec3;
-use crate::raw_data::raw_wall::RawWall;
-use crate::parser::utils;
+use crate::navigation::utils::Vec3;
+use crate::navigation::raw_data::raw_wall::RawWall;
+use super::utils;
 
 pub fn parse_wall(input: &mut &str) -> ModalResult<RawWall> {
     "make_wall, ".parse_next(input)?;

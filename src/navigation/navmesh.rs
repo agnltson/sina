@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use spade::Triangulation;
-use ordered_float::OrderedFloat;
-use crate::room_cdt::RoomCDT;
-use crate::room_topology::RoomTopology;
-use crate::utils::{Point, Polygon};
+use super::room_cdt::RoomCDT;
+use super::room_topology::RoomTopology;
+use super::utils::{Point, Polygon};
 
 pub struct NavPolygon {
     pub vertices: Vec<Point>,
@@ -56,6 +55,7 @@ impl NavMesh {
     pub fn render_rerun(
         &self,
         rec: &RecordingStream,
+        log_path: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // --- Polygon vertices ---
         let mut all_vertices: Vec<[f32; 2]> = Vec::new();
@@ -67,7 +67,7 @@ impl NavMesh {
         }
 
         rec.log(
-            "navmesh/vertices",
+            String::from(log_path) + "navmesh/vertices",
             &Points2D::new(all_vertices),
         )?;
 
@@ -92,7 +92,7 @@ impl NavMesh {
         }
 
         rec.log(
-            "navmesh/polygons",
+            String::from(log_path) + "navmesh/polygons",
             &LineStrips2D::new(edges),
         )?;
 

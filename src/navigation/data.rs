@@ -2,9 +2,10 @@ pub(crate) mod wall;
 pub(crate) mod door;
 pub(crate) mod bbox;
 
-use crate::data::wall::Wall;
-use crate::data::door::Door;
-use crate::data::bbox::BBox;
+use super::data::wall::Wall;
+use super::data::door::Door;
+use super::data::bbox::BBox;
+use super::raw_data::RawData;
 
 // After clean up and projection from raw data
 pub struct Data {
@@ -19,6 +20,7 @@ impl Data {
     pub fn render_rerun(
         &self,
         rec: &RecordingStream,
+        log_path: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
 
         // =========================================================
@@ -33,7 +35,7 @@ impl Data {
             .collect();
 
         rec.log(
-            "room/walls",
+            String::from(log_path) + "room/walls",
             &LineStrips2D::new(wall_lines)
                 .with_colors([Color::from_rgb(80, 120, 255)]),
         )?;
@@ -79,7 +81,7 @@ impl Data {
         }
 
         rec.log(
-            "room/doors",
+            String::from(log_path) + "room/doors",
             &LineStrips2D::new(door_lines)
                 .with_colors([Color::from_rgb(0, 200, 0)]),
         )?;
@@ -123,7 +125,7 @@ impl Data {
         }
 
         rec.log(
-            "room/bboxes",
+            String::from(log_path) + "room/bboxes",
             &LineStrips2D::new(bbox_strips)
                 .with_colors([Color::from_rgb(255, 80, 80)]),
         )?;
@@ -139,9 +141,6 @@ impl Data {
         self.walls.clone()
     }
 }
-
-use crate::raw_data::RawData;
-use ordered_float::OrderedFloat;
 
 impl From<RawData> for Data {
 
