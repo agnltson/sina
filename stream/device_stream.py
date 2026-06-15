@@ -22,6 +22,14 @@ from common import update_iptables
 
 from sender import ZMQDataSender
 
+from projectaria_tools.core.calibration import (
+    device_calibration_from_json_string,
+    get_linear_camera_calibration,
+)
+
+PINHOLE_WIDTH = 512
+PINHOLE_HEIGHT = 512
+PINHOLE_FOCAL_LENGTH = 150
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -74,6 +82,34 @@ def main():
 
     # 3. Retrieve the streaming_manager and streaming_client
     streaming_manager = device.streaming_manager
+
+    sensors_calib_json = streaming_manager.sensors_calibration()
+    sensors_calib = device_calibration_from_json_string(
+        sensors_calib_json
+    )
+
+    slam1_calib = sensors_calib.get_camera_calib(
+        "camera-slam-left"
+    )
+
+    slam2_calib = sensors_calib.get_camera_calib(
+        "camera-slam-right"
+    )
+
+    dst_slam1 = get_linear_camera_calibration(
+        PINHOLE_WIDTH,
+        PINHOLE_HEIGHT,
+        PINHOLE_FOCAL_LENGTH,
+        "camera-slam-left",
+    )
+
+    dst_slam2 = get_linear_camera_calibration(
+        PINHOLE_WIDTH,
+        PINHOLE_HEIGHT,
+        PINHOLE_FOCAL_LENGTH,
+        "camera-slam-right",
+    )
+
     streaming_client = streaming_manager.streaming_client
 
     # 4. Set custom config for streaming
@@ -93,15 +129,20 @@ def main():
 
     # 6. Get streaming state
     streaming_state = streaming_manager.streaming_state
-    print(f"Streaming state: {streaming_state}", file=sys.stderr)
+    print(f"Streaming state: {streaming_state}")
 
-    observer = ZMQDataSender()
+    observer = ZMQDataSender(
+        slam1_calib=slam1_calib,
+        slam2_calib=slam2_calib,
+        dst_slam1=dst_slam1,
+        dst_slam2=dst_slam2,
+    )
 
     streaming_client.set_streaming_client_observer(observer)
 
     streaming_client.subscribe()
 
-    print("Streaming started", file=sys.stderr)
+    print("Streaming started")
 
     try:
         while True:
@@ -110,7 +151,7 @@ def main():
         pass
 
     # 9. Stop streaming and disconnect the device
-    print("Stop listening to image data", file=sys.stderr)
+    print("Stop listening to image data")
     streaming_client.unsubscribe()
     streaming_manager.stop_streaming()
     device_client.disconnect(device)

@@ -9,13 +9,29 @@ from projectaria_tools.core.sensor_data import (
     MotionData,
 )
 
+from projectaria_tools.core.calibration import (
+    distort_by_calibration,
+)
+
 import zmq
 import json
 import cv2
 import base64
 
 class ZMQDataSender:
-    def __init__(self, endpoint="tcp://*:5555"):
+    def __init__(
+        self,
+        slam1_calib,
+        slam2_calib,
+        dst_slam1,
+        dst_slam2,
+        endpoint="tcp://*:5555",
+    ):
+        self.slam1_calib = slam1_calib
+        self.slam2_calib = slam2_calib
+        self.dst_slam1 = dst_slam1
+        self.dst_slam2 = dst_slam2
+
         ctx = zmq.Context.instance()
         self.socket = ctx.socket(zmq.PUB)
 
@@ -28,10 +44,25 @@ class ZMQDataSender:
         self.socket.send_string(json.dumps(msg))
 
     def on_image_received(self, image, record):
-        if record.camera_id not in (aria.CameraId.Slam1, aria.CameraId.Slam2):
+
+        if record.camera_id == aria.CameraId.Slam1:
+            src_calib = self.slam1_calib
+            dst_calib = self.dst_slam1
+
+        elif record.camera_id == aria.CameraId.Slam2:
+            src_calib = self.slam2_calib
+            dst_calib = self.dst_slam2
+
+        else:
             return
 
-        ok, encoded = cv2.imencode(".jpg", image)
+        pinhole_image = distort_by_calibration(
+            image,
+            dst_calib,
+            src_calib,
+        )
+
+        ok, encoded = cv2.imencode(".jpg", pinhole_image)
         if not ok:
             return
 
