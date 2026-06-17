@@ -1,7 +1,10 @@
-use std::env;
+use std::{env, sync::mpsc};
 use rerun::RecordingStreamBuilder;
 
 mod navigation;
+mod msckf;
+mod device_stream;
+mod sensor_data;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
@@ -17,6 +20,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let nav = navigation::Navigator::new(&filepath);
     nav.display()?;
+
+    let stream_args = vec![
+        "--interface",
+        "wifi",
+        "--device-ip",
+        "10.178.117.218",
+    ];
+
+    let streamer = device_stream::DeviceStream::new(stream_args);
+    //streamer.start()?;
 
     Ok(())
 }

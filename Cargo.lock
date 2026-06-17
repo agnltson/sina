@@ -1255,6 +1255,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cfg-expr"
+version = "0.15.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d067ad48b8650848b989a59a86c6c36a995d02d2bf778d45c3c5d57bc2718f02"
+dependencies = [
+ "smallvec",
+ "target-lexicon",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2468,6 +2478,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "dircpy"
+version = "0.3.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebcbec2b9a580ddee352ac38523d2ecd4dcaad53532957034394556909e27f4b"
+dependencies = [
+ "jwalk",
+ "log",
+ "walkdir",
+]
+
+[[package]]
 name = "directories"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2777,7 +2798,7 @@ dependencies = [
  "pollster",
  "serde",
  "tempfile",
- "toml",
+ "toml 1.1.2+spec-1.1.0",
  "wgpu",
 ]
 
@@ -3422,6 +3443,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "glam"
+version = "0.31.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "556f6b2ea90b8d15a74e0e7bb41671c9bdf38cd9f78c284d750b9ce58a2b5be7"
+
+[[package]]
+name = "glam"
+version = "0.32.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f70749695b063ecbf6b62949ccccde2e733ec3ecbbd71d467dca4e5c6c97cca0"
+
+[[package]]
+name = "glam"
+version = "0.33.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "898f5a568a84989b6c0f8caa50a93074b97dbdc58fc6d9543157bb4562758933"
+
+[[package]]
 name = "glob"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3696,7 +3735,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29a164ceff4500f2a72b1d21beaa8aa8ad83aec2b641844c659b190cb3ea2e0b"
 dependencies = [
  "constgebra",
- "glam",
+ "glam 0.30.10",
  "tinyvec",
 ]
 
@@ -4379,6 +4418,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "jwalk"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2735847566356cd2179a2a38264839308f7079fa96e6bd5a42d740460e003c56"
+dependencies = [
+ "crossbeam",
+ "rayon",
+]
+
+[[package]]
 name = "khronos-egl"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4691,7 +4740,7 @@ version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c96b82556b0d4aa25cd4771b64ef9bde7c120afb588a083fcb242bf01e4a09b"
 dependencies = [
- "glam",
+ "glam 0.30.10",
  "num-traits",
  "serde",
 ]
@@ -4915,6 +4964,37 @@ dependencies = [
  "spirv",
  "thiserror 2.0.18",
  "unicode-ident",
+]
+
+[[package]]
+name = "nalgebra"
+version = "0.35.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adc43a60c217b0c6ff46e47f26911015ad8d2e5a8be1af668c67e370d99a4346"
+dependencies = [
+ "approx",
+ "glam 0.30.10",
+ "glam 0.31.1",
+ "glam 0.32.1",
+ "glam 0.33.1",
+ "matrixmultiply",
+ "nalgebra-macros",
+ "num-complex",
+ "num-rational",
+ "num-traits",
+ "simba",
+ "typenum",
+]
+
+[[package]]
+name = "nalgebra-macros"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "973e7178a678cfd059ccec50887658d482ce16b0aa9da3888ddeab5cd5eb4889"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -6118,7 +6198,7 @@ version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e67ba7e9b2b56446f1d419b1d807906278ffa1a658a8a5d8a39dcb1f5a78614f"
 dependencies = [
- "toml_edit",
+ "toml_edit 0.25.12+spec-1.1.0",
 ]
 
 [[package]]
@@ -6647,7 +6727,7 @@ dependencies = [
  "arrow",
  "ecolor",
  "egui",
- "glam",
+ "glam 0.30.10",
  "half",
  "macaw",
  "parking_lot",
@@ -7699,7 +7779,7 @@ dependencies = [
  "ecolor",
  "enumset",
  "getrandom 0.3.4",
- "glam",
+ "glam 0.30.10",
  "gltf",
  "half",
  "itertools 0.14.0",
@@ -7808,7 +7888,7 @@ dependencies = [
  "ecolor",
  "egui_plot",
  "emath",
- "glam",
+ "glam 0.30.10",
  "half",
  "image",
  "indexmap",
@@ -7923,7 +8003,7 @@ dependencies = [
  "ahash",
  "arrow",
  "bitflags 2.11.1",
- "glam",
+ "glam 0.30.10",
  "itertools 0.14.0",
  "nohash-hasher",
  "parking_lot",
@@ -8149,7 +8229,7 @@ checksum = "d399c87421ed7f3cfa4e6aa6e5d43ce3730473b9bab5ca5ffbaa0afb0a31c93b"
 dependencies = [
  "ahash",
  "egui",
- "glam",
+ "glam 0.30.10",
  "itertools 0.14.0",
  "nohash-hasher",
  "re_chunk_store",
@@ -8254,7 +8334,7 @@ checksum = "e443f37efcd3b821960d43fb449cd61156a9461cd73f9effd4332859885bc954"
 dependencies = [
  "bytemuck",
  "egui",
- "glam",
+ "glam 0.30.10",
  "itertools 0.14.0",
  "macaw",
  "re_byte_size",
@@ -8285,7 +8365,7 @@ dependencies = [
  "bitflags 2.11.1",
  "bytemuck",
  "egui",
- "glam",
+ "glam 0.30.10",
  "hexasphere",
  "image",
  "itertools 0.14.0",
@@ -8420,7 +8500,7 @@ dependencies = [
  "arrayvec",
  "egui",
  "egui_plot",
- "glam",
+ "glam 0.30.10",
  "itertools 0.14.0",
  "macaw",
  "nohash-hasher",
@@ -8465,7 +8545,7 @@ dependencies = [
  "ehttp",
  "emath",
  "futures",
- "glam",
+ "glam 0.30.10",
  "image",
  "itertools 0.14.0",
  "jiff",
@@ -8568,7 +8648,7 @@ dependencies = [
  "egui-wgpu",
  "egui_tiles",
  "emath",
- "glam",
+ "glam 0.30.10",
  "half",
  "home",
  "image",
@@ -9142,6 +9222,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
+name = "safe_arch"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f7caad094bd561859bcd467734a720c3c1f5d1f338995351fefe2190c45efed"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9352,6 +9441,15 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
+version = "0.6.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf41e0cfaf7226dca15e8197172c295a782857fcb97fad1808a166870dee75a3"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "serde_spanned"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6662b5879511e06e8999a8a235d848113e942c9124f211511b16466ee2995f26"
@@ -9448,12 +9546,30 @@ dependencies = [
 name = "sima"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "base64 0.22.1",
  "i_overlay",
+ "nalgebra",
  "opencv",
  "ordered-float 5.3.0",
  "rerun",
+ "serde",
+ "serde_json",
  "spade",
- "winnow",
+ "winnow 1.0.3",
+ "zmq",
+]
+
+[[package]]
+name = "simba"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f45c644a9f3a386f9288625d9f0c1e999e1acf07a37df35d0516c7f199d9cb2"
+dependencies = [
+ "approx",
+ "num-complex",
+ "num-traits",
+ "wide",
 ]
 
 [[package]]
@@ -9839,10 +9955,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "system-deps"
+version = "6.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3e535eb8dded36d55ec13eddacd30dec501792ff23a0b1682c38601b8cf2349"
+dependencies = [
+ "cfg-expr",
+ "heck",
+ "pkg-config",
+ "toml 0.8.23",
+ "version-compare",
+]
+
+[[package]]
 name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
+
+[[package]]
+name = "target-lexicon"
+version = "0.12.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 
 [[package]]
 name = "tempfile"
@@ -10133,15 +10268,36 @@ dependencies = [
 
 [[package]]
 name = "toml"
+version = "0.8.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc1beb996b9d83529a9e75c17a1686767d148d70663143c7854d8b4a09ced362"
+dependencies = [
+ "serde",
+ "serde_spanned 0.6.9",
+ "toml_datetime 0.6.11",
+ "toml_edit 0.22.27",
+]
+
+[[package]]
+name = "toml"
 version = "1.1.2+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81f3d15e84cbcd896376e6730314d59fb5a87f31e4b038454184435cd57defee"
 dependencies = [
  "serde_core",
- "serde_spanned",
- "toml_datetime",
+ "serde_spanned 1.1.1",
+ "toml_datetime 1.1.1+spec-1.1.0",
  "toml_parser",
- "winnow",
+ "winnow 1.0.3",
+]
+
+[[package]]
+name = "toml_datetime"
+version = "0.6.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22cddaf88f4fbc13c51aebbf5f8eceb5c7c5a9da2ac40a13519eb5b0a0e8f11c"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -10155,14 +10311,27 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
+version = "0.22.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41fe8c660ae4257887cf66394862d21dbca4a6ddd26f04a3560410406a2f819a"
+dependencies = [
+ "indexmap",
+ "serde",
+ "serde_spanned 0.6.9",
+ "toml_datetime 0.6.11",
+ "winnow 0.7.15",
+]
+
+[[package]]
+name = "toml_edit"
 version = "0.25.12+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2153edc6955a6c354fad8f5efd38b6a8769bdccf9fe50f8e1329f81b0baa5d7"
 dependencies = [
  "indexmap",
- "toml_datetime",
+ "toml_datetime 1.1.1+spec-1.1.0",
  "toml_parser",
- "winnow",
+ "winnow 1.0.3",
 ]
 
 [[package]]
@@ -10171,7 +10340,7 @@ version = "1.1.2+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2abe9b86193656635d2411dc43050282ca48aa31c2451210f4202550afb7526"
 dependencies = [
- "winnow",
+ "winnow 1.0.3",
 ]
 
 [[package]]
@@ -10679,6 +10848,12 @@ dependencies = [
  "hashbrown 0.16.1",
  "vello_common",
 ]
+
+[[package]]
+name = "version-compare"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "03c2856837ef78f57382f06b2b8563a2f512f7185d732608fd9176cb3b8edf0e"
 
 [[package]]
 name = "version_check"
@@ -11219,6 +11394,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "wide"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dfdfe6a32973f2d1b268b8895845a8a96cac2f0191e72c27cc929036060dbf89"
+dependencies = [
+ "bytemuck",
+ "safe_arch",
+]
+
+[[package]]
 name = "wildmatch"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11583,6 +11768,15 @@ dependencies = [
 
 [[package]]
 name = "winnow"
+version = "0.7.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df79d97927682d2fd8adb29682d1140b343be4ac0f08fd68b7765d9c059d3945"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
+name = "winnow"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0592e1c9d151f854e6fd382574c3a0855250e1d9b2f99d9281c6e6391af352f1"
@@ -11817,7 +12011,7 @@ dependencies = [
  "uds_windows",
  "uuid",
  "windows-sys 0.61.2",
- "winnow",
+ "winnow 1.0.3",
  "zbus_macros",
  "zbus_names",
  "zvariant",
@@ -11869,7 +12063,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7074f3e50b894eac91750142016d30d0a89be8e67dbfd9704fb875825760e52d"
 dependencies = [
  "serde",
- "winnow",
+ "winnow 1.0.3",
  "zvariant",
 ]
 
@@ -11968,6 +12162,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "zeromq-src"
+version = "0.2.6+4.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc120b771270365d5ed0dfb4baf1005f2243ae1ae83703265cb3504070f4160b"
+dependencies = [
+ "cc",
+ "dircpy",
+]
+
+[[package]]
 name = "zerotrie"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12025,6 +12229,28 @@ name = "zmij"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
+
+[[package]]
+name = "zmq"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd3091dd571fb84a9b3e5e5c6a807d186c411c812c8618786c3c30e5349234e7"
+dependencies = [
+ "bitflags 1.3.2",
+ "libc",
+ "zmq-sys",
+]
+
+[[package]]
+name = "zmq-sys"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e8351dc72494b4d7f5652a681c33634063bbad58046c1689e75270908fdc864"
+dependencies = [
+ "libc",
+ "system-deps",
+ "zeromq-src",
+]
 
 [[package]]
 name = "zopfli"
@@ -12090,7 +12316,7 @@ dependencies = [
  "endi",
  "enumflags2",
  "serde",
- "winnow",
+ "winnow 1.0.3",
  "zvariant_derive",
  "zvariant_utils",
 ]
@@ -12118,5 +12344,5 @@ dependencies = [
  "quote",
  "serde",
  "syn 2.0.117",
- "winnow",
+ "winnow 1.0.3",
 ]
