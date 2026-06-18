@@ -19,7 +19,6 @@ pub struct RawImuMessage {
 
 #[derive(Debug)]
 pub struct ImuMessage {
-    pub msg_type: String,
     pub imu_idx: u32,
     pub timestamp_ns: u64,
     pub accel_msec2: Vector3<f64>,
@@ -30,7 +29,6 @@ impl ImuMessage {
     pub fn from_json(raw_str: &String) -> anyhow::Result<Self> {
         let i: RawImuMessage = serde_json::from_str(&raw_str)?;
         Ok(Self {
-            msg_type: i.msg_type,
             imu_idx: i.imu_idx,
             timestamp_ns: i.timestamp_ns,
             accel_msec2: Vector3::new(i.accel_msec2[0], i.accel_msec2[1], i.accel_msec2[2]),
@@ -44,21 +42,16 @@ impl ImuMessage {
 pub struct RawImageMessage {
     #[serde(rename = "type")]
     pub msg_type: String,
-
     pub camera: String,
     pub timestamp_ns: u64,
-
     // base64-encoded JPEG string from Python
     pub jpeg: String,
 }
 
 #[derive(Debug)]
 pub struct ImageMessage {
-    pub msg_type: String,
-
-    pub camera: String,
+    pub camera: u8,
     pub timestamp_ns: u64,
-
     pub jpeg: Vec<u8>,
 }
 
@@ -67,8 +60,7 @@ impl ImageMessage {
         let raw: RawImageMessage = serde_json::from_str(&raw_str)?;
         let image: Vec<u8> = decode_jpeg(&raw.jpeg)?;
         Ok(Self {
-            msg_type: raw.msg_type,
-            camera: raw.camera,
+            camera: raw.camera.as_str().parse::<u8>()?,
             timestamp_ns: raw.timestamp_ns,
             jpeg: image,
         })

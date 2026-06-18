@@ -1,6 +1,7 @@
 use std::process::{Command, Stdio};
+use std::sync::mpsc::Sender;
 
-use crate::sensor_data::{ImuMessage, ImageMessage};
+use crate::sensor_data::{SensorData, ImuMessage, ImageMessage};
 
 use zmq;
 use serde_json::Value;
@@ -16,14 +17,13 @@ impl<'a> DeviceStream<'a> {
         }
     }
 
-    pub fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn run(&self, sensor_data_sender: Sender<SensorData>) -> Result<(), Box<dyn std::error::Error>> {
         let mut child = Command::new("python")
             .arg("stream/device_stream.py")
             .args(&self.stream_args)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .spawn()?;
-
         let ctx = zmq::Context::new();
         let socket = ctx.socket(zmq::SUB)?;
 
@@ -37,13 +37,17 @@ impl<'a> DeviceStream<'a> {
 
             match v["type"].as_str() {
                 Some("imu") => {
-                    let m: ImuMessage = ImuMessage::from_json(&msg)?;
-                    println!("{:?}", m);
+                    let sd: SensorData = SensorData::Imu(ImuMessage::from_json(&msg)?);
+                    if sensor_data_sender.send(sd).is_err() {
+                        break;
+                    }
                 }
 
                 Some("slam_image") => {
-                    let m: ImageMessage = ImageMessage::from_json(&msg)?;
-                    println!("image received ({} bytes)", msg.len());
+                    let sd: SensorData = SensorData::Image(ImageMessage::from_json(&msg)?);
+                    if sensor_data_sender.send(sd).is_err() {
+                        break;
+                    }
                 }
 
                 _ => {
@@ -51,6 +55,9 @@ impl<'a> DeviceStream<'a> {
                 }
             }
         }
+
         child.kill()?;
+        child.wait()?;
+        Ok(())
     }
 }

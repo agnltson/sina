@@ -67,7 +67,6 @@ impl NavGraph {
         rec: &RecordingStream,
         log_path: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-
         let _ = self.room_data.render_rerun(&rec, log_path);
         let _ = self.room_topology.render_rerun(&rec, log_path);
         let _ = self.navmesh.render_rerun(&rec, log_path);

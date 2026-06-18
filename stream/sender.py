@@ -83,3 +83,12 @@ class ZMQDataSender:
             "accel_msec2": list(s.accel_msec2),
             "gyro_radsec": list(s.gyro_radsec),
         })
+
+    def on_magneto_received(self, sample) -> None:
+        pass
+
+    def on_baro_received(self, sample) -> None:
+        pass
+
+    def on_streaming_client_failure(self, reason, message: str) -> None:
+        pass
