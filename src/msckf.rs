@@ -1,5 +1,10 @@
 pub mod utils;
 
+use opencv::{
+    core::{Mat, Point2f, Vector},
+    imgcodecs,
+    imgproc,
+};
 use nalgebra::{Vector3, Quaternion, UnitQuaternion};
 use std::sync::mpsc::{Sender, Receiver};
 
@@ -39,7 +44,7 @@ impl MSCKF {
                 SensorData::Imu(m) => {
                     if m.imu_idx == 0 {
                         self.update(&m);
-                        if visual_data_sender.send(VisualisationData::Position(self.current_state.p, m.timestamp_ns)).is_err() {
+                        if visual_data_sender.send(VisualisationData::Position(self.current_state.p)).is_err() {
                             break;
                         }
                     } else {
@@ -47,12 +52,13 @@ impl MSCKF {
                     }
                 },
                 SensorData::Image(m) => {
+                    let features = compute_features(&m.jpeg).unwrap();
                     if m.camera == 1 {
-                        if visual_data_sender.send(VisualisationData::LeftImage(m.jpeg, m.timestamp_ns)).is_err() {
+                        if visual_data_sender.send(VisualisationData::LeftImage(m.jpeg, features)).is_err() {
                             break;
                         }
                     } else {
-                        if visual_data_sender.send(VisualisationData::RightImage(m.jpeg, m.timestamp_ns)).is_err() {
+                        if visual_data_sender.send(VisualisationData::RightImage(m.jpeg, features)).is_err() {
                             break;
                         }
                     }
@@ -60,7 +66,6 @@ impl MSCKF {
             }
         }
         Ok(())
-
     }
 
     pub fn update(&mut self, imu: &ImuMessage) {
@@ -95,6 +100,30 @@ impl MSCKF {
         self.current_timestamp = Some(imu.timestamp_ns);
     }
 
+}
+
+fn compute_features(jpeg: &Vec<u8>) -> Result<Vec<[f32; 2]>, Box<dyn std::error::Error>>  {
+    let buf = Vector::from_slice(jpeg);
+    let frame = imgcodecs::imdecode(&buf, imgcodecs::IMREAD_COLOR)?;
+
+    let mut gray = Mat::default();
+    imgproc::cvt_color(&frame, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
+
+    // Shi-Tomasi
+    let mut corners = Vector::<Point2f>::new();
+    imgproc::good_features_to_track(
+        &gray,
+        &mut corners,
+        200,  // max corners
+        0.01, // quality level
+        10.0, // min distance
+        &Mat::default(),
+        3,
+        false,
+        0.04,
+    )?;
+    let positions: Vec<[f32; 2]> = corners.iter().map(|p| [p.x, p.y]).collect();
+    Ok(positions)
 }
 
 #[inline(always)]

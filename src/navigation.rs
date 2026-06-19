@@ -14,7 +14,7 @@ pub use navigator::Navigator;
 use nalgebra::Vector3;
 
 pub enum VisualisationData {
-    Position(Vector3<f64>, u64),
-    LeftImage(Vec<u8>, u64),
-    RightImage(Vec<u8>, u64),
+    Position(Vector3<f64>),
+    LeftImage(Vec<u8>, Vec<[f32; 2]>),
+    RightImage(Vec<u8>, Vec<[f32; 2]>),
 }

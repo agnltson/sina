@@ -7,6 +7,7 @@ mod navigation;
 mod msckf;
 mod device_stream;
 mod sensor_data;
+mod loggable;
 
 use sensor_data::SensorData;
 use navigation::VisualisationData;

@@ -1,8 +1,3 @@
-use opencv::{
-    core::{Mat, Point2f, Vector},
-    imgcodecs,
-    imgproc,
-};
 use rerun::{RecordingStreamBuilder, RecordingStream, EncodedImage, Color, Points2D};
 use nalgebra::Vector3;
 use std::sync::mpsc::Receiver;
@@ -10,6 +5,7 @@ use std::sync::mpsc::Receiver;
 use super::navgraph::NavGraph;
 use super::utils::Point;
 use crate::navigation::VisualisationData;
+use crate::loggable::Loggable;
 
 pub struct Navigator {
      navgraph: NavGraph,
@@ -37,13 +33,13 @@ impl Navigator {
 
         while let Ok(visual_data) = visual_data_receiver.recv() {
             match visual_data {
-                VisualisationData::Position(pos_v3, timestamp) => {
+                VisualisationData::Position(pos_v3) => {
                     let p: Point = (pos_v3.x, pos_v3.y).into();
                     self.position = Some(p);
                     p.render_rerun(&self.rec, &(String::from(log_path) + "position"))?;
                 },
-                VisualisationData::LeftImage(jpeg, timestamp) => render_image_with_features(&self.rec, "camera/LeftImage", jpeg)?,
-                VisualisationData::RightImage(jpeg, timestamp) => render_image_with_features(&self.rec, "camera/RightImage", jpeg)?,
+                VisualisationData::LeftImage(jpeg, features) => render_image_with_features(&self.rec, "camera/LeftImage", jpeg, features)?,
+                VisualisationData::RightImage(jpeg, features) => render_image_with_features(&self.rec, "camera/RightImage", jpeg, features)?,
             }
 
             if let Some(path) = &self.path {
@@ -54,53 +50,18 @@ impl Navigator {
     }
 }
 
-fn render_image(
-    rec: &RecordingStream,
-    log_path: &str,
-    jpeg: Vec<u8>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    rec.log(
-        log_path,
-        &EncodedImage::new(jpeg),
-    )?;
-
-    Ok(())
-}
-
 pub fn render_image_with_features(
     rec: &RecordingStream,
     log_path: &str,
     jpeg: Vec<u8>,
+    features: Vec<[f32; 2]>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let buf = Vector::from_slice(&jpeg);
-    let frame = imgcodecs::imdecode(&buf, imgcodecs::IMREAD_COLOR)?;
-
-    let mut gray = Mat::default();
-    imgproc::cvt_color(&frame, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
-
-    // Shi-Tomasi
-    let mut corners = Vector::<Point2f>::new();
-    imgproc::good_features_to_track(
-        &gray,
-        &mut corners,
-        200,  // max corners
-        0.01, // quality level
-        10.0, // min distance
-        &Mat::default(),
-        3,
-        false,
-        0.04,
-    )?;
-
-    // Log image
     rec.log(log_path, &EncodedImage::from_file_contents(jpeg))?;
 
-    // Log features
-    let positions: Vec<[f32; 2]> = corners.iter().map(|p| [p.x, p.y]).collect();
-    if !positions.is_empty() {
+    if !features.is_empty() {
         rec.log(
             format!("{}/features", log_path),
-            &Points2D::new(positions)
+            &Points2D::new(features)
                 .with_radii([3.0])
                 .with_colors([Color::from_rgb(0, 255, 0)]),
         )?;

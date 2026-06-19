@@ -1,4 +1,7 @@
 use nalgebra::{Vector3, UnitQuaternion};
+use std::collections::VecDeque;
+
+const N: usize = 32;
 
 pub struct State {
     pub p: Vector3<f64>,
@@ -6,6 +9,8 @@ pub struct State {
     pub q: UnitQuaternion<f64>,
     pub ba: Vector3<f64>,
     pub bg: Vector3<f64>,
+    pub window: VecDeque<Vec<u8>>,
+    pub window_size: usize,
 }
 
 impl State {
@@ -22,32 +27,8 @@ impl State {
             q,
             ba,
             bg,
-        }
-    }
-}
-
-pub struct ErrorState {
-    pub dp: Vector3<f64>,
-    pub dv: Vector3<f64>,
-    pub dtheta: f64,
-    pub dba: Vector3<f64>,
-    pub dbg: Vector3<f64>,
-}
-
-impl ErrorState {
-    pub fn new(
-        dp: Vector3<f64>,
-        dv: Vector3<f64>,
-        dtheta: f64,
-        dba: Vector3<f64>,
-        dbg: Vector3<f64>,
-    ) -> Self {
-        Self {
-            dp,
-            dv,
-            dtheta,
-            dba,
-            dbg,
+            window: VecDeque::new(),
+            window_size: N,
         }
     }
 }
