@@ -53,7 +53,7 @@ impl From<&RoomCDT> for Vec<Polygon> {
 use rerun::{LineStrips2D, Points2D, RecordingStream};
 
 impl RoomCDT {
-    pub fn render_rerun(
+    pub fn log(
         &self,
         rec: &RecordingStream,
         log_path: &str,
@@ -69,7 +69,7 @@ impl RoomCDT {
             .collect();
 
         rec.log(
-            String::from(log_path) + "cdt/vertices",
+            format!("{}/cdt/vertices", log_path).as_str(),
             &Points2D::new(vertices),
         )?;
 
@@ -88,7 +88,7 @@ impl RoomCDT {
         }
 
         rec.log(
-            String::from(log_path) + "cdt/triangulation",
+            format!("{}/cdt/triangulation", log_path).as_str(),
             &LineStrips2D::new(tri_edges),
         )?;
 

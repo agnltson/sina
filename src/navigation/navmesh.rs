@@ -52,7 +52,7 @@ use rerun::{
 };
 
 impl NavMesh {
-    pub fn render_rerun(
+    pub fn log(
         &self,
         rec: &RecordingStream,
         log_path: &str,
@@ -67,7 +67,7 @@ impl NavMesh {
         }
 
         rec.log(
-            String::from(log_path) + "navmesh/vertices",
+            format!("{}/navmesh/vertices", log_path).as_str(),
             &Points2D::new(all_vertices),
         )?;
 

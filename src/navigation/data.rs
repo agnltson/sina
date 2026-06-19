@@ -17,7 +17,7 @@ pub struct Data {
 use rerun::{Color, LineStrips2D, RecordingStream};
 
 impl Data {
-    pub fn render_rerun(
+    pub fn log(
         &self,
         rec: &RecordingStream,
         log_path: &str,
@@ -35,7 +35,7 @@ impl Data {
             .collect();
 
         rec.log(
-            String::from(log_path) + "room/walls",
+            format!("{}/room/walls", log_path).as_str(),
             &LineStrips2D::new(wall_lines)
                 .with_colors([Color::from_rgb(80, 120, 255)]),
         )?;
@@ -81,7 +81,7 @@ impl Data {
         }
 
         rec.log(
-            String::from(log_path) + "room/doors",
+            format!("{}/room/doors", log_path).as_str(),
             &LineStrips2D::new(door_lines)
                 .with_colors([Color::from_rgb(0, 200, 0)]),
         )?;
@@ -125,7 +125,7 @@ impl Data {
         }
 
         rec.log(
-            String::from(log_path) + "room/bboxes",
+            format!("{}/room/bboxes", log_path).as_str(),
             &LineStrips2D::new(bbox_strips)
                 .with_colors([Color::from_rgb(255, 80, 80)]),
         )?;

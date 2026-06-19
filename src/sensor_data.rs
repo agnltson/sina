@@ -2,6 +2,8 @@ use serde::Deserialize;
 use base64::Engine;
 use nalgebra::{Vector3, Quaternion};
 
+use std::cmp::Ordering;
+
 pub enum SensorData {
     Imu(ImuMessage),
     Image(ImageMessage),
@@ -17,12 +19,32 @@ pub struct RawImuMessage {
     pub gyro_radsec: [f64; 3],
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImuMessage {
     pub imu_idx: u32,
     pub timestamp_ns: u64,
     pub accel_msec2: Vector3<f64>,
     pub gyro_radsec: Vector3<f64>,
+}
+
+impl Eq for ImuMessage {}
+
+impl PartialEq for ImuMessage {
+    fn eq(&self, other: &Self) -> bool {
+        self.timestamp_ns.eq(&other.timestamp_ns)
+    }
+}
+
+impl Ord for ImuMessage {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.timestamp_ns.cmp(&other.timestamp_ns).reverse()
+    }
+}
+
+impl PartialOrd for ImuMessage {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl ImuMessage {
@@ -48,7 +70,7 @@ pub struct RawImageMessage {
     pub jpeg: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageMessage {
     pub camera: u8,
     pub timestamp_ns: u64,

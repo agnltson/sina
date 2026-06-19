@@ -62,14 +62,14 @@ impl NavGraph {
         NavGraph { nodes, edges, room_data, room_topology, navmesh }
     }
 
-    pub fn render_rerun(
+    pub fn log(
         &self,
         rec: &RecordingStream,
         log_path: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let _ = self.room_data.render_rerun(&rec, log_path);
-        let _ = self.room_topology.render_rerun(&rec, log_path);
-        let _ = self.navmesh.render_rerun(&rec, log_path);
+    ) -> anyhow::Result<()> {
+        let _ = self.room_data.log(&rec, log_path);
+        let _ = self.room_topology.log(&rec, log_path);
+        let _ = self.navmesh.log(&rec, log_path);
 
         // -------------------------
         // NODES (centroids)
@@ -84,7 +84,7 @@ impl NavGraph {
             .collect();
 
         rec.log(
-            String::from(log_path) + "navgraph/nodes",
+            format!("{}/navgraph/nodes", log_path).as_str(),
             &Points2D::new(points),
         )?;
 
@@ -107,7 +107,7 @@ impl NavGraph {
         }
 
         rec.log(
-            String::from(log_path) + "navgraph/edges",
+            format!("{}/navgraph/edges", log_path).as_str(),
             &LineStrips2D::new(edge_lines)
                 .with_colors([Color::from_rgb(80, 80, 255)]), // blue-ish
         )?;

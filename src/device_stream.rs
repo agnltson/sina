@@ -1,5 +1,5 @@
 use std::process::{Command, Stdio};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc;
 
 use crate::sensor_data::{SensorData, ImuMessage, ImageMessage};
 
@@ -17,7 +17,7 @@ impl<'a> DeviceStream<'a> {
         }
     }
 
-    pub fn run(&self, sensor_data_sender: Sender<SensorData>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn launch(&self, sensor_data_tx: mpsc::Sender<SensorData>) -> anyhow::Result<()> {
         let mut child = Command::new("python")
             .arg("stream/device_stream.py")
             .args(&self.stream_args)
@@ -38,16 +38,12 @@ impl<'a> DeviceStream<'a> {
             match v["type"].as_str() {
                 Some("imu") => {
                     let sd: SensorData = SensorData::Imu(ImuMessage::from_json(&msg)?);
-                    if sensor_data_sender.send(sd).is_err() {
-                        break;
-                    }
+                    sensor_data_tx.send(sd)?;
                 }
 
                 Some("slam_image") => {
                     let sd: SensorData = SensorData::Image(ImageMessage::from_json(&msg)?);
-                    if sensor_data_sender.send(sd).is_err() {
-                        break;
-                    }
+                    sensor_data_tx.send(sd)?;
                 }
 
                 _ => {

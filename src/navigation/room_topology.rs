@@ -61,7 +61,7 @@ impl RoomTopology {
         Self { borders, holes }
     }
 
-    pub fn render_rerun(
+    pub fn log(
         &self,
         rec: &RecordingStream,
         log_path: &str,
@@ -76,7 +76,7 @@ impl RoomTopology {
             border_strips.push(strip);
         }
         rec.log(
-            String::from(log_path) + "topology/borders",
+            format!("{}/topology/borders", log_path).as_str(),
             &LineStrips2D::new(border_strips).with_colors([Color::from_rgb(0, 200, 255)])
         )?;
 
@@ -90,7 +90,7 @@ impl RoomTopology {
             hole_strips.push(strip);
         }
         rec.log(
-            String::from(log_path) + "topology/holes",
+            format!("{}/topology/holes", log_path).as_str(),
             &LineStrips2D::new(hole_strips).with_colors([Color::from_rgb(255, 100, 100)])
         )?;
         Ok(())
