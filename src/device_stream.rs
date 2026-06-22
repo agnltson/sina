@@ -18,6 +18,7 @@ impl<'a> DeviceStream<'a> {
     }
 
     pub fn launch(&self, sensor_data_tx: mpsc::Sender<SensorData>) -> anyhow::Result<()> {
+        println!("Launching sensor data stream");
         let mut child = Command::new("python")
             .arg("stream/device_stream.py")
             .args(&self.stream_args)
@@ -37,9 +38,12 @@ impl<'a> DeviceStream<'a> {
 
             match v["type"].as_str() {
                 Some("imu") => {
-                    let sd: SensorData = SensorData::Imu(ImuMessage::from_json(&msg)?);
-                    sensor_data_tx.send(sd)?;
-                }
+                    let imu = ImuMessage::from_json(&msg)?;
+                    // We only send from imu 0 it's the fastest one
+                    if imu.imu_idx == 0 {
+                        let sd: SensorData = SensorData::Imu(imu);
+                        sensor_data_tx.send(sd)?;
+                    }                }
 
                 Some("slam_image") => {
                     let sd: SensorData = SensorData::Image(ImageMessage::from_json(&msg)?);

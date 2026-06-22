@@ -18,6 +18,7 @@ use crate::navigation::VisualisationData;
 pub struct MSCKF {
     state: State,
     timestamp: Option<u64>,
+    buffer: SensorBuffer,
 }
 
 impl MSCKF {
@@ -32,78 +33,102 @@ impl MSCKF {
                 Vector3::new(0.0, 0.0, 0.0),
             ),
             timestamp: None,
+            buffer: SensorBuffer::new(),
         }
     }
 
     pub fn launch(
         &mut self,
         recording: RecordingStream,
-        buffer_rx: mpsc::Receiver<SensorBuffer>,
-        pos_tx: mpsc::Sender<Vector3<f64>>
-        ) -> anyhow::Result<()> {
-
+        imu_rx: mpsc::Receiver<ImuMessage>,
+        image_rx: mpsc::Receiver<ImageMessage>,
+        pos_tx: mpsc::Sender<Vector3<f64>>,
+    ) -> anyhow::Result<()> {
         loop {
-            if let Ok(mut buffer) = buffer_rx.recv() {
+            while let Ok(imu) = imu_rx.try_recv() {
+                self.buffer.push_imu(imu);
+            }
+            while let Ok(img) = image_rx.try_recv() {
+                self.buffer.push_image(img);
+            }
 
-                self.log_update(&recording, &buffer)?;
-
-                self.update(&mut buffer);
-                pos_tx.send(self.state.p)?;
+            if let Some(pos) = self.update(&recording)? {
+                pos_tx.send(pos)?;
             }
         }
-        Ok(())
-
     }
 
-    pub fn update(&mut self, buffer: &mut SensorBuffer) {
-        while let Some(imu) = buffer.pop_imu() {
-            if self.timestamp.is_none() {
-                self.timestamp = Some(imu.timestamp_ns);
-                return;
-            }
-            let previous_timestamp = self.timestamp.unwrap();
+    fn update(&mut self, recording: &RecordingStream) -> anyhow::Result<Option<Vector3<f64>>> {
+        let Some((left, right)) = self.buffer.pop_synced_image() else {
+            return Ok(None);
+        };
 
-            let delta_t_s = (imu.timestamp_ns - previous_timestamp) as f64 * 1e-9;
+        let image_timestamp = (left.timestamp_ns + right.timestamp_ns) / 2;
+
+        for imu in self.buffer.drain_imu_until(image_timestamp) {
+            let Some(prev) = self.timestamp else {
+                self.timestamp = Some(imu.timestamp_ns);
+                continue;
+            };
+            let delta_t_s = (imu.timestamp_ns - prev) as f64 * 1e-9;
             self.state = self.compute_estimate(&imu, delta_t_s);
             self.timestamp = Some(imu.timestamp_ns);
         }
+
+        self.log_images(recording, &left, &right)?;
+
+        Ok(Some(self.state.p))
+    }
+
+    fn log_images(
+        &self,
+        recording: &RecordingStream,
+        left: &ImageMessage,
+        right: &ImageMessage,
+    ) -> anyhow::Result<()> {
+        let log_path = "msckf";
+
+        let lfeatures = compute_features(&left.jpeg)?;
+        let rfeatures = compute_features(&right.jpeg)?;
+
+        recording.log(
+            format!("{}/left_image", log_path),
+            &EncodedImage::from_file_contents(left.jpeg.clone()),
+        )?;
+        if !lfeatures.is_empty() {
+            recording.log(
+                format!("{}/left_image/features", log_path),
+                &Points2D::new(lfeatures)
+                    .with_radii([3.0])
+                    .with_colors([Color::from_rgb(0, 255, 0)]),
+            )?;
+        }
+
+        recording.log(
+            format!("{}/right_image", log_path),
+            &EncodedImage::from_file_contents(right.jpeg.clone()),
+        )?;
+        if !rfeatures.is_empty() {
+            recording.log(
+                format!("{}/right_image/features", log_path),
+                &Points2D::new(rfeatures)
+                    .with_radii([3.0])
+                    .with_colors([Color::from_rgb(0, 255, 0)]),
+            )?;
+        }
+
+        Ok(())
     }
 
     fn compute_estimate(&self, imu: &ImuMessage, delta_t_s: f64) -> State {
         let previous_state = &self.state;
-
-        let pk = predict_pos(previous_state, imu, delta_t_s);
-        let vk = predict_vel(previous_state, imu, delta_t_s);
-        let qk = predict_quat(previous_state, imu, delta_t_s);
         State::new(
-            pk,
-            vk,
-            qk,
+            predict_pos(previous_state, imu, delta_t_s),
+            predict_vel(previous_state, imu, delta_t_s),
+            predict_quat(previous_state, imu, delta_t_s),
             previous_state.ba,
             previous_state.bg,
         )
-    }
-
-    fn log_update(&self, record: &RecordingStream, buffer: &SensorBuffer) -> anyhow::Result<()> {
-        let log_path = "msckf";
-        if let Some(m) = buffer.get_image() {
-            let features = compute_features(&m.jpeg)?;
-
-            record.log(
-                format!("{}/image", log_path).as_str(),
-                &EncodedImage::from_file_contents(m.jpeg),
-                )?;
-
-            if !features.is_empty() {
-                record.log(
-                    format!("{}/features", log_path).as_str(),
-                    &Points2D::new(features)
-                        .with_radii([3.0])
-                        .with_colors([Color::from_rgb(0, 255, 0)]),
-                )?;
-            }
-        }
-        Ok(())
     }
 }
 

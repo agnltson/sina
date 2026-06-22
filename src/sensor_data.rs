@@ -77,6 +77,26 @@ pub struct ImageMessage {
     pub jpeg: Vec<u8>,
 }
 
+impl Eq for ImageMessage {}
+
+impl PartialEq for ImageMessage {
+    fn eq(&self, other: &Self) -> bool {
+        self.timestamp_ns.eq(&other.timestamp_ns)
+    }
+}
+
+impl Ord for ImageMessage {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.timestamp_ns.cmp(&other.timestamp_ns).reverse()
+    }
+}
+
+impl PartialOrd for ImageMessage {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl ImageMessage {
     pub fn from_json(raw_str: &String) -> anyhow::Result<Self> {
         let raw: RawImageMessage = serde_json::from_str(&raw_str)?;

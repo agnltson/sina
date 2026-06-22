@@ -92,7 +92,7 @@ impl NavMesh {
         }
 
         rec.log(
-            String::from(log_path) + "navmesh/polygons",
+            format!("{}/navmesh/polygons", log_path).as_str(),
             &LineStrips2D::new(edges),
         )?;
 
