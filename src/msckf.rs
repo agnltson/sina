@@ -1,7 +1,8 @@
 pub mod utils;
 
 use opencv::{
-    core::{Mat, Point2f, Vector},
+    video,
+    core::{Mat, Point2f, Vector, Size, TermCriteria, TermCriteria_EPS, TermCriteria_COUNT},
     imgcodecs,
     imgproc,
 };
@@ -19,6 +20,8 @@ pub struct MSCKF {
     state: State,
     timestamp: Option<u64>,
     buffer: SensorBuffer,
+    prev_left: Option<Mat>,
+    prev_right: Option<Mat>,
 }
 
 impl MSCKF {
@@ -34,6 +37,8 @@ impl MSCKF {
             ),
             timestamp: None,
             buffer: SensorBuffer::new(),
+            prev_left: None,
+            prev_right: None,
         }
     }
 
@@ -65,6 +70,7 @@ impl MSCKF {
 
         let image_timestamp = (left.timestamp_ns + right.timestamp_ns) / 2;
 
+        // Estimation
         for imu in self.buffer.drain_imu_until(image_timestamp) {
             let Some(prev) = self.timestamp else {
                 self.timestamp = Some(imu.timestamp_ns);
@@ -74,6 +80,19 @@ impl MSCKF {
             self.state = self.compute_estimate(&imu, delta_t_s);
             self.timestamp = Some(imu.timestamp_ns);
         }
+
+        // Video measurement
+        let curr_left = jpeg_to_gray(&left.jpeg)?;
+        let curr_right = jpeg_to_gray(&right.jpeg)?;
+
+        if let (Some(prev_l), Some(prev_r)) = (&self.prev_left, &self.prev_right) {
+            let (prev_pts_l, curr_pts_l) = extract_features_temporal(prev_l, &curr_left)?;
+            let (prev_pts_r, curr_pts_r) = extract_features_temporal(prev_r, &curr_right)?;
+        }
+
+        self.prev_left = Some(curr_left);
+        self.prev_right = Some(curr_right);
+
 
         self.log_images(recording, &left, &right)?;
 
@@ -88,17 +107,21 @@ impl MSCKF {
     ) -> anyhow::Result<()> {
         let log_path = "msckf";
 
-        let lfeatures = compute_features(&left.jpeg)?;
-        let rfeatures = compute_features(&right.jpeg)?;
+        let left_mat = jpeg_to_gray(&left.jpeg)?;
+        let right_mat = jpeg_to_gray(&right.jpeg)?;
+
+        let (_, left_pts) = extract_features_temporal(&self.prev_left.clone().unwrap(), &left_mat)?;
+        let (_, right_pts) = extract_features_temporal(&self.prev_right.clone().unwrap(), &right_mat)?;
 
         recording.log(
             format!("{}/left_image", log_path),
             &EncodedImage::from_file_contents(left.jpeg.clone()),
         )?;
-        if !lfeatures.is_empty() {
+        if !left_pts.is_empty() {
+            let pts: Vec<[f32; 2]> = left_pts.iter().map(|p| [p.x, p.y]).collect();
             recording.log(
                 format!("{}/left_image/features", log_path),
-                &Points2D::new(lfeatures)
+                &Points2D::new(pts)
                     .with_radii([3.0])
                     .with_colors([Color::from_rgb(0, 255, 0)]),
             )?;
@@ -108,10 +131,11 @@ impl MSCKF {
             format!("{}/right_image", log_path),
             &EncodedImage::from_file_contents(right.jpeg.clone()),
         )?;
-        if !rfeatures.is_empty() {
+        if !right_pts.is_empty() {
+            let pts: Vec<[f32; 2]> = right_pts.iter().map(|p| [p.x, p.y]).collect();
             recording.log(
                 format!("{}/right_image/features", log_path),
-                &Points2D::new(rfeatures)
+                &Points2D::new(pts)
                     .with_radii([3.0])
                     .with_colors([Color::from_rgb(0, 255, 0)]),
             )?;
@@ -132,28 +156,53 @@ impl MSCKF {
     }
 }
 
-fn compute_features(jpeg: &Vec<u8>) -> anyhow::Result<Vec<[f32; 2]>>  {
+fn jpeg_to_gray(jpeg: &[u8]) -> anyhow::Result<Mat> {
     let buf = Vector::from_slice(jpeg);
-    let frame = imgcodecs::imdecode(&buf, imgcodecs::IMREAD_COLOR)?;
+    Ok(imgcodecs::imdecode(&buf, imgcodecs::IMREAD_GRAYSCALE)?)
+}
 
-    let mut gray = Mat::default();
-    imgproc::cvt_color(&frame, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
-
-    // Shi-Tomasi
-    let mut corners = Vector::<Point2f>::new();
+fn extract_features_temporal(
+    prev: &Mat,
+    curr: &Mat,
+) -> anyhow::Result<(Vector<Point2f>, Vector<Point2f>)> {
+    let mut prev_corners = Vector::<Point2f>::new();
     imgproc::good_features_to_track(
-        &gray,
-        &mut corners,
-        200,  // max corners
-        0.01, // quality level
-        10.0, // min distance
-        &Mat::default(),
-        3,
-        false,
-        0.04,
+        prev, &mut prev_corners, 200, 0.01, 10.0,
+        &Mat::default(), 3, false, 0.04,
     )?;
-    let positions: Vec<[f32; 2]> = corners.iter().map(|p| [p.x, p.y]).collect();
-    Ok(positions)
+
+    if prev_corners.is_empty() {
+        return Ok((Vector::new(), Vector::new()));
+    }
+
+    let mut curr_corners = Vector::<Point2f>::new();
+    let mut status = Vector::<u8>::new();
+    let mut err = Vector::<f32>::new();
+    video::calc_optical_flow_pyr_lk(
+        prev, curr,
+        &prev_corners, &mut curr_corners,
+        &mut status, &mut err,
+        Size::new(21, 21), 3,
+        TermCriteria::new(
+            TermCriteria_EPS + TermCriteria_COUNT, 30, 0.01,
+        )?,
+        0, 1e-4,
+    )?;
+
+    let prev_pts = prev_corners.iter()
+        .zip(status.iter())
+        .filter(|(_, s)| *s == 1)
+        .map(|(p, _)| p)
+        .collect();
+
+    let curr_pts = curr_corners.iter()
+        .zip(curr_corners.iter())
+        .zip(status.iter())
+        .filter(|(_, s)| *s == 1)
+        .map(|((_, c), _)| c)
+        .collect();
+
+    Ok((prev_pts, curr_pts))
 }
 
 #[inline(always)]
