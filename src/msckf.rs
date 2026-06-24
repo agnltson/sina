@@ -9,7 +9,7 @@ use opencv::{
 use nalgebra::{
     Quaternion, UnitQuaternion,
     OMatrix, OVector, Matrix3, Vector3,
-    Const, SMatrix, SVector,
+    Const, SMatrix, SVector, DMatrix, DVector
 };
 
 use std::sync::mpsc;
@@ -18,7 +18,7 @@ use std::collections::VecDeque;
 
 use utils::{
     State, STATE_SIZE, MAX_POS_SAVED, FeatureTrack,
-    FX, FY, CX, CY,
+    FX, FY, CX, CY, r_cam_imu, t_cam_imu,
 };
 use crate::device_stream::DeviceStream;
 use crate::sensor_data::{SensorData, ImuMessage, ImageMessage};
@@ -321,6 +321,87 @@ impl MSCKF {
         self.cov_mat.view_mut((0, freed), (STATE_SIZE, 6)).fill(0.0);
     }
 
+    fn process_lost_feature(&mut self, track: FeatureTrack) {
+        let Some(p_f_c1) = self.triangulate(&track) else {
+            return;
+        };
+        self.msckf_update(&track, &p_f_c1);
+    }
+
+    fn msckf_update(&mut self, track: &FeatureTrack, p_f_c1: &Vector3<f64>) {
+        let Some((r, h_f, h_c)) = self.compute_residuals_and_jacobians(track, p_f_c1) else {
+            return;
+        };
+
+        // --- Left nullspace de H_f ---
+        // H_f est 2M x 3, son left nullspace est de dimension 2M-3
+        // On utilise la décomposition QR : H_f = Q * [R; 0]
+        // Q = [Q1 | Q2] où Q2 (2M x 2M-3) est le left nullspace
+        let qr = h_f.qr();
+        let q = qr.q(); // 2M x 2M
+        let m = track.observations.len();
+        // Q2 : colonnes 3..2M de Q
+        let v = q.columns(3, 2*m - 3).into_owned(); // 2M x (2M-3)
+
+        // Projeter résidus et Jacobien
+        let r_o = v.transpose() * &r;       // (2M-3) x 1
+        let h_o = v.transpose() * &h_c;     // (2M-3) x STATE_SIZE
+
+        // --- Update EKF ---
+        let p = self.cov_mat;
+        let sigma_img: f64 = 1.0 / FX; // bruit pixel en coordonnées normalisées
+
+        // S = H_o * P * H_o^T + R_o
+        let ph_t = p * h_o.transpose();
+        let s = &h_o * &ph_t + 
+            DMatrix::<f64>::identity(2*m - 3, 2*m - 3) * sigma_img * sigma_img;
+
+        let Some(s_inv) = s.try_inverse() else {
+            return;
+        };
+
+        // Gain de Kalman K = P * H_o^T * S^-1
+        let k = ph_t * s_inv; // STATE_SIZE x (2M-3)
+
+        // Correction de l'état
+        let delta_x = &k * &r_o; // STATE_SIZE x 1
+
+        self.apply_correction(&DVector::from_column_slice(delta_x.as_slice()));
+
+        // Mise à jour de la covariance : P = (I - K*H_o) * P
+        let i_kh = DMatrix::<f64>::identity(STATE_SIZE, STATE_SIZE) - &k * &h_o;
+        let p_dyn = DMatrix::<f64>::from_row_slice(
+            STATE_SIZE,
+            STATE_SIZE,
+            p.as_slice(),
+        );
+        let p_new = &i_kh * p_dyn;
+        self.cov_mat.copy_from(&OMatrix::<f64, Const<STATE_SIZE>, Const<STATE_SIZE>>::from_iterator(
+            p_new.iter().cloned()
+        ));
+    }
+
+    fn apply_correction(&mut self, delta_x: &DVector<f64>) {
+        // Position
+        self.state.p += Vector3::new(delta_x[0], delta_x[1], delta_x[2]);
+        // Vitesse
+        self.state.v += Vector3::new(delta_x[3], delta_x[4], delta_x[5]);
+        // Rotation (correction additive sur l'angle-axe)
+        let dtheta = Vector3::new(delta_x[6], delta_x[7], delta_x[8]);
+        self.state.q = UnitQuaternion::from_scaled_axis(dtheta) * self.state.q;
+        // Biais
+        self.state.ba += Vector3::new(delta_x[9],  delta_x[10], delta_x[11]);
+        self.state.bg += Vector3::new(delta_x[12], delta_x[13], delta_x[14]);
+
+        // Correction des poses clonées
+        for (i, (p_c, q_c)) in self.state.saved.iter_mut().enumerate() {
+            let base = 15 + 6 * i;
+            *p_c += Vector3::new(delta_x[base],   delta_x[base+1], delta_x[base+2]);
+            let dtheta_c = Vector3::new(delta_x[base+3], delta_x[base+4], delta_x[base+5]);
+            *q_c = UnitQuaternion::from_scaled_axis(dtheta_c) * *q_c;
+        }
+    }
+
     fn track_features(&mut self, prev: &Mat, curr: &Mat, clone_index: usize, tracks: &mut Vec<FeatureTrack>) -> anyhow::Result<()> {
         if tracks.is_empty() {
             let mut corners = Vector::<Point2f>::new();
@@ -356,7 +437,7 @@ impl MSCKF {
         // use lost features as measure for msckf
         for i in lost.iter().rev() {
             let track = tracks.remove(*i);
-            // self.process_lost_feature(track);
+            self.process_lost_feature(track);
         }
 
         // Detect again if they are not enough features tracked
@@ -364,6 +445,152 @@ impl MSCKF {
             // good_features_to_track + ajouter les nouvelles
         }
         Ok(())
+    }
+
+    fn triangulate(&self, track: &FeatureTrack) -> Option<Vector3<f64>> {
+        if track.observations.len() < 3 {
+            return None;
+        }
+
+        let obs: Vec<(SMatrix<f64, 2, 1>, usize)> = track.observations.iter()
+            .map(|(clone_idx, pt)| {
+                let z = SMatrix::<f64, 2, 1>::new(
+                    (pt.x as f64 - CX) / FX,
+                    (pt.y as f64 - CY) / FY,
+                );
+                (z, *clone_idx)
+            })
+            .collect();
+
+        let c1_idx = obs[0].1;
+        let (imu_p_c1, imu_q_c1) = self.state.saved[c1_idx];
+        let r_c1 = r_cam_imu() * imu_q_c1.to_rotation_matrix().into_inner();
+        let p_c1 = r_cam_imu() * imu_p_c1 + t_cam_imu();
+
+        let mut alpha = obs[0].0[0];
+        let mut beta  = obs[0].0[1];
+        let mut rho   = 1.0;
+
+        for _ in 0..10 {
+            let mut hessian  = SMatrix::<f64, 3, 3>::zeros();
+            let mut gradient = SMatrix::<f64, 3, 1>::zeros();
+
+            for (z, clone_idx) in &obs {
+                let (imu_p, imu_q) = self.state.saved[*clone_idx];
+                let r_cam_world = r_cam_imu() * imu_q.to_rotation_matrix().into_inner();
+                let p_cam = r_cam_imu() * imu_p + t_cam_imu();
+
+                let r_rel = r_cam_world * r_c1.transpose();
+                let t_rel = r_cam_world * (p_c1 - p_cam);
+
+                let abr = Vector3::new(alpha, beta, 1.0);
+                let h = r_rel * abr + t_rel * rho;
+                let h1 = h[0]; let h2 = h[1]; let h3 = h[2];
+
+                let z_hat = SMatrix::<f64, 2, 1>::new(h1/h3, h2/h3);
+                let r_i = z - z_hat;
+
+                let mut ji = SMatrix::<f64, 2, 3>::zeros();
+                ji[(0,0)] = (r_rel[(0,0)] - (h1/h3)*r_rel[(2,0)]) / h3;
+                ji[(0,1)] = (r_rel[(0,1)] - (h1/h3)*r_rel[(2,1)]) / h3;
+                ji[(0,2)] = (t_rel[0]     - (h1/h3)*t_rel[2])     / h3;
+                ji[(1,0)] = (r_rel[(1,0)] - (h2/h3)*r_rel[(2,0)]) / h3;
+                ji[(1,1)] = (r_rel[(1,1)] - (h2/h3)*r_rel[(2,1)]) / h3;
+                ji[(1,2)] = (t_rel[1]     - (h2/h3)*t_rel[2])     / h3;
+
+                hessian  += ji.transpose() * ji;
+                gradient += ji.transpose() * r_i;
+            }
+
+            let Some(h_inv) = hessian.try_inverse() else {
+                return None;
+            };
+            let delta = h_inv * gradient;
+
+            alpha += delta[0];
+            beta  += delta[1];
+            rho   += delta[2];
+
+            if delta.norm() < 1e-6 {
+                break;
+            }
+        }
+
+        if rho <= 0.0 {
+            return None;
+        }
+
+        Some(Vector3::new(alpha/rho, beta/rho, 1.0/rho))
+    }
+
+    fn compute_residuals_and_jacobians(
+        &self,
+        track: &FeatureTrack,
+        p_f_c1: &Vector3<f64>, // triangulated pos
+    ) -> Option<(
+        DVector<f64>, // r (2M x 1)
+        DMatrix<f64>, // H_f (2M x 3)
+        DMatrix<f64>, // H_C (2M x STATE_SIZE)
+    )> {
+        let m = track.observations.len();
+
+        let mut r   = DVector::<f64>::zeros(2 * m);
+        let mut h_f = DMatrix::<f64>::zeros(2 * m, 3);
+        let mut h_c = DMatrix::<f64>::zeros(2 * m, STATE_SIZE);
+
+        let c1_idx = track.observations[0].0;
+        let (imu_p_c1, imu_q_c1) = self.state.saved[c1_idx];
+        let r_c1 = r_cam_imu() * imu_q_c1.to_rotation_matrix().into_inner();
+        let p_c1 = r_cam_imu() * imu_p_c1 + t_cam_imu();
+
+        for (i, (clone_idx, pt)) in track.observations.iter().enumerate() {
+            let (imu_p, imu_q) = self.state.saved[*clone_idx];
+            let r_ci = r_cam_imu() * imu_q.to_rotation_matrix().into_inner();
+            let p_ci = r_cam_imu() * imu_p + t_cam_imu();
+
+            let r_rel = r_ci * r_c1.transpose();
+            let t_rel = r_ci * (p_c1 - p_ci);
+
+            // feature position in C_i
+            let p_f_ci = r_rel * p_f_c1 + t_rel;
+            let px = p_f_ci[0];
+            let py = p_f_ci[1];
+            let pz = p_f_ci[2];
+
+            if pz <= 0.0 {
+                return None;
+            }
+
+            let z_obs = SMatrix::<f64, 2, 1>::new(
+                (pt.x as f64 - CX) / FX,
+                (pt.y as f64 - CY) / FY,
+            );
+            let z_hat = SMatrix::<f64, 2, 1>::new(px/pz, py/pz);
+            r[2*i]   = z_obs[0] - z_hat[0];
+            r[2*i+1] = z_obs[1] - z_hat[1];
+
+            // Jacobian
+            let j_h = SMatrix::<f64, 2, 3>::new(
+                1.0/pz, 0.0, -px/(pz*pz),
+                0.0, 1.0/pz, -py/(pz*pz),
+            );
+
+            // H_f_i = J_h * R_rel (2x3)
+            let h_f_i = j_h * r_rel;
+            h_f.rows_mut(2*i, 2).copy_from(&h_f_i);
+
+            // H_C_i = J_h * [skew(p_f_ci) | -R_ci] (2x6)
+            let mut h_c_i = SMatrix::<f64, 2, 6>::zeros();
+            h_c_i.fixed_view_mut::<2, 3>(0, 0)
+                .copy_from(&(j_h * skew(&p_f_ci)));
+            h_c_i.fixed_view_mut::<2, 3>(0, 3)
+                .copy_from(&(-j_h * r_ci));
+
+            let col = 15 + 6 * clone_idx;
+            h_c.view_mut((2*i, col), (2, 6)).copy_from(&h_c_i);
+        }
+
+        Some((r, h_f, h_c))
     }
 }
 
