@@ -66,22 +66,6 @@ impl Point {
             y: self.y / len,
         }
     }
-
-    pub fn render_rerun(
-        &self,
-        rec: &RecordingStream,
-        log_path: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        rec.log(
-            log_path.to_owned() + "point",
-            &Points2D::new([[
-                self.x.into_inner(),
-                self.y.into_inner(),
-            ]]),
-        )?;
-
-        Ok(())
-    }
 }
 
 impl Into<Point2<f32>> for Point {

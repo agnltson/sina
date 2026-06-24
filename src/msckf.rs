@@ -45,12 +45,16 @@ pub struct MSCKF {
 
 impl MSCKF {
     pub fn new() -> Self {
-        let axisangle = Vector3::x() * std::f64::consts::FRAC_PI_2;
+        let a_imu = Vector3::new(-9.75, -0.91, 0.75).normalize();
+        let g_world = Vector3::new(0.0, 0.0, 1.0); // normalisé
+        let initial_q = UnitQuaternion::rotation_between(&a_imu, &g_world)
+            .unwrap_or(UnitQuaternion::identity());
+
         Self {
             state: State::new(
                 Vector3::new(0.0, 0.0, 0.0),
                 Vector3::new(0.0, 0.0, 0.0),
-                UnitQuaternion::new(axisangle),
+                initial_q,
                 Vector3::new(0.0, 0.0, 0.0),
                 Vector3::new(0.0, 0.0, 0.0),
                 VecDeque::new(),
@@ -115,17 +119,25 @@ impl MSCKF {
         // Video measurement
         let curr_left = jpeg_to_gray(&left.jpeg)?;
         let curr_right = jpeg_to_gray(&right.jpeg)?;
+        let clone_index = self.state.saved.len().saturating_sub(1);
 
-        if let (Some(prev_l), Some(prev_r)) = (&self.prev_left, &self.prev_right) {
-            //let (prev_pts_l, curr_pts_l) = extract_features_temporal(prev_l, &curr_left)?;
-            //let (prev_pts_r, curr_pts_r) = extract_features_temporal(prev_r, &curr_right)?;
+        if let (Some(prev_l), Some(prev_r)) = (self.prev_left.take(), self.prev_right.take()) {
+            println!("update: appel track_features");
+            let mut tracks_left = std::mem::take(&mut self.active_tracks_left);
+            let mut tracks_right = std::mem::take(&mut self.active_tracks_right);
+
+            self.track_features(&prev_l, &curr_left, clone_index, &mut tracks_left)?;
+            self.track_features(&prev_r, &curr_right, clone_index, &mut tracks_right)?;
+
+            self.active_tracks_left = tracks_left;
+            self.active_tracks_right = tracks_right;
         }
 
         self.prev_left = Some(curr_left);
         self.prev_right = Some(curr_right);
 
 
-        self.log_images(recording, &left, &right)?;
+        //self.log_images(recording, &left, &right)?;
 
         Ok(Some(self.state.p))
     }
@@ -180,6 +192,15 @@ impl MSCKF {
     }
 
     fn compute_estimate(&self, imu: &ImuMessage, delta_t_s: f64) -> State {
+        // Dans compute_estimate, avant tout calcul
+        println!("accel raw = {:?}", imu.accel_msec2);
+        println!("gyro raw = {:?}", imu.gyro_radsec);
+
+        let g_world = Vector3::new(0.0, 0.0, 9.81);
+        let a_corrected = imu.accel_msec2 - self.state.ba;
+        let a_world = self.state.q.to_rotation_matrix() * a_corrected;
+        println!("a_world = {:?}, devrait être proche de [0, 0, 9.81]", a_world);
+
         let previous_state = &self.state;
         State::new(
             predict_pos(previous_state, imu, delta_t_s),
@@ -187,7 +208,7 @@ impl MSCKF {
             predict_quat(previous_state, imu, delta_t_s),
             previous_state.ba,
             previous_state.bg,
-            VecDeque::new(),
+            previous_state.saved.clone(), // ← garder les clones
         )
     }
 
@@ -322,26 +343,41 @@ impl MSCKF {
     }
 
     fn process_lost_feature(&mut self, track: FeatureTrack) {
+        println!("process_lost_feature: {} observations", track.observations.len());
         let Some(p_f_c1) = self.triangulate(&track) else {
             return;
         };
+        println!("triangulate: ok, p_f_c1 = {:?}", p_f_c1);
         self.msckf_update(&track, &p_f_c1);
     }
 
     fn msckf_update(&mut self, track: &FeatureTrack, p_f_c1: &Vector3<f64>) {
         let Some((r, h_f, h_c)) = self.compute_residuals_and_jacobians(track, p_f_c1) else {
+            println!("msckf_update: residuals failed");
             return;
         };
+        println!("msckf_update: r.norm() = {}", r.norm());
+        if r.norm() > 1.0 {
+            println!("résidu trop grand, feature rejetée");
+            return;
+        }
 
         // --- Left nullspace de H_f ---
         // H_f est 2M x 3, son left nullspace est de dimension 2M-3
         // On utilise la décomposition QR : H_f = Q * [R; 0]
         // Q = [Q1 | Q2] où Q2 (2M x 2M-3) est le left nullspace
-        let qr = h_f.qr();
-        let q = qr.q(); // 2M x 2M
+        //let qr = h_f.clone().qr();
+        //let q = qr.clone().q(); // 2M x 2M
         let m = track.observations.len();
         // Q2 : colonnes 3..2M de Q
-        let v = q.columns(3, 2*m - 3).into_owned(); // 2M x (2M-3)
+        let m = track.observations.len();
+        if 2 * m <= 3 {
+            return; // pas assez d'observations pour le left nullspace
+        }
+        let svd = h_f.svd(true, false);
+        let u = svd.u.unwrap(); // 2M x 2M — forme complète
+        println!("u shape: {}x{}", u.nrows(), u.ncols());
+        let v = u.columns(3, 2*m - 3).into_owned();
 
         // Projeter résidus et Jacobien
         let r_o = v.transpose() * &r;       // (2M-3) x 1
@@ -357,6 +393,7 @@ impl MSCKF {
             DMatrix::<f64>::identity(2*m - 3, 2*m - 3) * sigma_img * sigma_img;
 
         let Some(s_inv) = s.try_inverse() else {
+            println!("msckf_update: S not invertible");
             return;
         };
 
@@ -365,6 +402,7 @@ impl MSCKF {
 
         // Correction de l'état
         let delta_x = &k * &r_o; // STATE_SIZE x 1
+        println!("delta_x norm = {}", delta_x.norm());
 
         self.apply_correction(&DVector::from_column_slice(delta_x.as_slice()));
 
@@ -388,7 +426,7 @@ impl MSCKF {
         self.state.v += Vector3::new(delta_x[3], delta_x[4], delta_x[5]);
         // Rotation (correction additive sur l'angle-axe)
         let dtheta = Vector3::new(delta_x[6], delta_x[7], delta_x[8]);
-        self.state.q = UnitQuaternion::from_scaled_axis(dtheta) * self.state.q;
+        self.state.q = self.state.q * UnitQuaternion::from_scaled_axis(dtheta);
         // Biais
         self.state.ba += Vector3::new(delta_x[9],  delta_x[10], delta_x[11]);
         self.state.bg += Vector3::new(delta_x[12], delta_x[13], delta_x[14]);
@@ -398,14 +436,16 @@ impl MSCKF {
             let base = 15 + 6 * i;
             *p_c += Vector3::new(delta_x[base],   delta_x[base+1], delta_x[base+2]);
             let dtheta_c = Vector3::new(delta_x[base+3], delta_x[base+4], delta_x[base+5]);
-            *q_c = UnitQuaternion::from_scaled_axis(dtheta_c) * *q_c;
+            *q_c = *q_c * UnitQuaternion::from_scaled_axis(dtheta_c);
         }
     }
 
     fn track_features(&mut self, prev: &Mat, curr: &Mat, clone_index: usize, tracks: &mut Vec<FeatureTrack>) -> anyhow::Result<()> {
+        println!("track_features: {} tracks actifs, clone_index={}", tracks.len(), clone_index);
         if tracks.is_empty() {
             let mut corners = Vector::<Point2f>::new();
             imgproc::good_features_to_track(prev, &mut corners, 200, 0.01, 10.0, &Mat::default(), 3, false, 0.04)?;
+            println!("detection initiale: {} corners", corners.len());
             for pt in corners.iter() {
                 tracks.push(FeatureTrack {
                     id: self.next_feature_id,
@@ -423,6 +463,9 @@ impl MSCKF {
 
         // Compute the next pos
         let (curr_pts, status) = extract_features_temporal(prev, curr, &prev_pts)?;
+
+        let n_lost = status.iter().filter(|s| *s == 0).count();
+        println!("LK: {} tracked, {} lost", status.iter().filter(|s| *s == 1).count(), n_lost);
 
         // Update or lost
         let mut lost = vec![];
@@ -442,7 +485,7 @@ impl MSCKF {
 
         // Detect again if they are not enough features tracked
         if tracks.len() < 50 {
-            // good_features_to_track + ajouter les nouvelles
+            self.detect_new_features(curr, clone_index, tracks)?;
         }
         Ok(())
     }
@@ -592,6 +635,42 @@ impl MSCKF {
 
         Some((r, h_f, h_c))
     }
+
+    fn detect_new_features(
+        &mut self,
+        curr: &Mat,
+        clone_index: usize,
+        tracks: &mut Vec<FeatureTrack>,
+    ) -> anyhow::Result<()> {
+        let mut new_corners = Vector::<Point2f>::new();
+        imgproc::good_features_to_track(
+            curr, &mut new_corners, 200, 0.01, 10.0,
+            &Mat::default(), 3, false, 0.04,
+        )?;
+
+        let existing_pts: Vec<Point2f> = tracks.iter()
+            .filter_map(|t| t.observations.last())
+            .map(|(_, p)| *p)
+            .collect();
+
+        for pt in new_corners.iter() {
+            let too_close = existing_pts.iter().any(|ep| {
+                let dx = ep.x - pt.x;
+                let dy = ep.y - pt.y;
+                (dx*dx + dy*dy).sqrt() < 10.0
+            });
+
+            if !too_close {
+                tracks.push(FeatureTrack {
+                    id: self.next_feature_id,
+                    observations: vec![(clone_index, pt)],
+                });
+                self.next_feature_id += 1;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 fn skew(v: &Vector3<f64>) -> Matrix3<f64> {
@@ -631,15 +710,19 @@ fn extract_features_temporal(
 
 #[inline(always)]
 fn predict_pos(previous_state: &State, imu: &ImuMessage, delta_t_s: f64) -> Vector3<f64> {
+    let g_world = Vector3::new(0.0, 0.0, 9.81);
     previous_state.p +
     previous_state.v.scale(delta_t_s) +
-    previous_state.q.to_rotation_matrix() * ((imu.accel_msec2 - previous_state.ba).scale(0.5 * delta_t_s * delta_t_s))
+    (previous_state.q.to_rotation_matrix() * (imu.accel_msec2 - previous_state.ba) + g_world)
+        .scale(0.5 * delta_t_s * delta_t_s)
 }
 
 #[inline(always)]
 fn predict_vel(previous_state: &State, imu: &ImuMessage, delta_t_s: f64) -> Vector3<f64> {
+    let g_world = Vector3::new(0.0, 0.0, 9.81);
     previous_state.v +
-    previous_state.q.to_rotation_matrix() * (imu.accel_msec2 - previous_state.ba).scale(delta_t_s)
+    (previous_state.q.to_rotation_matrix() * (imu.accel_msec2 - previous_state.ba) + g_world)
+        .scale(delta_t_s)
 }
 
 #[inline(always)]

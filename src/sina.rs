@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 use std::thread;
 use nalgebra::Vector3;
-use rerun::{RecordingStream, RecordingStreamBuilder};
+use rerun::{RecordingStream, RecordingStreamBuilder, Points2D, Color};
 
 use crate::{
     device_stream,

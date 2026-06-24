@@ -29,6 +29,7 @@ impl Navigator {
             if let Ok(pos) = pos_rx.recv() {
                 self.position = Some(pos);
             }
+            self.log_position(&record, "navigator/position")?;
         }
 
         Ok(())
@@ -39,6 +40,26 @@ impl Navigator {
             record,
             format!("{}/plan", log_path).as_str(),
             )?;
+        Ok(())
+    }
+
+    fn log_position(
+        &self,
+        record: &RecordingStream,
+        log_path: &str,
+    ) -> anyhow::Result<()> {
+        if let Some(pos) = self.position {
+            //println!("New pos logged {:?}", pos);
+            let (x, y): (f64, f64) = pos.into();
+
+            record.log(
+                format!("{}/position", log_path).as_str(),
+                &Points2D::new([[x as f32, y as f32]])
+                    .with_colors([Color::from_rgb(255, 0, 0)])
+                    .with_radii([0.15]),
+            )?;
+        }
+
         Ok(())
     }
 }
