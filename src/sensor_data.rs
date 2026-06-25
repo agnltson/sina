@@ -4,6 +4,7 @@ use nalgebra::{Vector3, Quaternion};
 
 use std::cmp::Ordering;
 
+#[derive(Debug)]
 pub enum SensorData {
     Imu(ImuMessage),
     Image(ImageMessage),

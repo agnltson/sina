@@ -1,7 +1,6 @@
 use std::env;
 
 mod navigation;
-mod msckf;
 mod device_stream;
 mod sensor_data;
 mod sensor_buffer;
