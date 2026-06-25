@@ -4,7 +4,6 @@ use std::sync::mpsc;
 
 use super::navgraph::NavGraph;
 use super::Point;
-use crate::sensor_data::SensorData;
 
 pub struct Navigator {
      navgraph: NavGraph,

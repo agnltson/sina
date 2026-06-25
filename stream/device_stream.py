@@ -20,7 +20,8 @@ import aria.sdk as aria
 
 from common import update_iptables
 
-from sender import ZMQDataSender
+from sender import ROS2DataSender
+import rclpy
 
 from projectaria_tools.core.calibration import (
     device_calibration_from_json_string,
@@ -131,7 +132,8 @@ def main():
     streaming_state = streaming_manager.streaming_state
     print(f"Streaming state: {streaming_state}")
 
-    observer = ZMQDataSender(
+    rclpy.init()
+    observer = ROS2DataSender(
         slam1_calib=slam1_calib,
         slam2_calib=slam2_calib,
         dst_slam1=dst_slam1,
@@ -146,9 +148,13 @@ def main():
 
     try:
         while True:
-            time.sleep(1)
+            rclpy.spin_once(observer, timeout_sec=0.001)
+            time.sleep(0.001)
     except KeyboardInterrupt:
         pass
+
+    observer.destroy_node()
+    rclpy.shutdown()
 
     # 9. Stop streaming and disconnect the device
     print("Stop listening to image data")

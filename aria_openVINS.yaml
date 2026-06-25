@@ -1,0 +1,53 @@
+%YAML:1.0
+
+topic_imu: "/aria/imu0"
+topic_camera0: "/aria/camera/left/image_raw"
+topic_camera1: "/aria/camera/right/image_raw"
+
+# Estimator
+use_fej: true
+use_imuavg: true
+use_rk4int: true
+use_stereo: true
+max_cameras: 2
+
+# Features
+max_clones: 11
+max_slam: 0
+max_aruco: 0
+num_pts: 200
+fast_threshold: 20
+grid_x: 5
+grid_y: 5
+min_px_dist: 10
+knn_ratio: 0.70
+downsample_cameras: false
+multi_threading: true
+
+# Noise IMU (Aria Gen 1 imu-left)
+gyroscope_noise_density: 1.5e-3
+gyroscope_random_walk: 1.7e-4
+accelerometer_noise_density: 16e-3
+accelerometer_random_walk: 2.8e-3
+
+# Camera 0 — slam-left
+T_imu_cam0:
+  - [-0.00850024,  0.99988281, -0.01273245,  0.00058498]
+  - [ 0.99647865,  0.00740777, -0.08351896, -0.00020483]
+  - [-0.08341486, -0.01339755, -0.99642484, -0.00659877]
+  - [ 0.0, 0.0, 0.0, 1.0]
+cam0_is_fisheye: false
+cam0_wh: [512, 512]
+cam0_k: [150.0, 150.0, 256.0, 256.0]  # fx fy cx cy
+cam0_d: [0.0, 0.0, 0.0, 0.0]
+
+# Camera 1 — slam-right
+T_imu_cam1:
+  - [ 0.04295091,  0.22401962, -0.97363773,  0.00430832]
+  - [ 0.99186191, -0.12647198,  0.01465552,  0.10241051]
+  - [-0.11985477, -0.96634365, -0.22762861, -0.08586357]
+  - [ 0.0, 0.0, 0.0, 1.0]
+cam1_is_fisheye: false
+cam1_wh: [512, 512]
+cam1_k: [150.0, 150.0, 256.0, 256.0]
+cam1_d: [0.0, 0.0, 0.0, 0.0]

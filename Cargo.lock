@@ -9722,6 +9722,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
+ "futures",
  "i_overlay",
  "nalgebra",
  "ordered-float 5.3.0",
@@ -9730,6 +9731,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spade",
+ "tokio",
  "winnow 1.0.3",
  "zmq",
 ]
