@@ -5,10 +5,8 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.102"
-base64 = "0.22.1"
 i_overlay = "7.0.0"
 nalgebra = "0.35.0"
-opencv = "0.98.2"
 ordered-float = "5.3.0"
 rerun = "0.33.0"
 serde = "1.0.228"

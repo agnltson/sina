@@ -43,46 +43,37 @@ class ZMQDataSender:
     def send(self, msg: dict):
         self.socket.send_string(json.dumps(msg))
 
-    def on_image_received(self, image, record):
+    def on_pose_received(self, pose):
+        """
+        pose.world_T_device = SE3 (world -> device)
+        """
 
-        if record.camera_id == aria.CameraId.Slam1:
-            src_calib = self.slam1_calib
-            dst_calib = self.dst_slam1
+        T = pose.world_T_device
 
-        elif record.camera_id == aria.CameraId.Slam2:
-            src_calib = self.slam2_calib
-            dst_calib = self.dst_slam2
-
-        else:
+        if self.T0 is None:
+            self.T0 = T
             return
 
-        pinhole_image = distort_by_calibration(
-            image,
-            dst_calib,
-            src_calib,
-        )
-
-        ok, encoded = cv2.imencode(".jpg", pinhole_image)
-        if not ok:
-            return
+        T_rel = T @ self.T0.inverse()
 
         self.send({
-            "type": "slam_image",
-            "camera": str(record.camera_id),
-            "timestamp_ns": record.capture_timestamp_ns,
-            "jpeg": base64.b64encode(encoded.tobytes()).decode("ascii"),
+            "type": "pose_relative",
+            "timestamp_ns": pose.timestamp_ns,
+
+            "position_m": [
+                T_rel.translation[0],
+                T_rel.translation[1],
+                T_rel.translation[2],
+            ],
+
+            "rotation": T_rel.euler_angles().tolist(),
         })
+
+    def on_image_received(self, image, record):
+        pass
 
     def on_imu_received(self, samples, imu_idx):
-        s = samples[0]
-
-        self.send({
-            "type": "imu",
-            "imu_idx": imu_idx,
-            "timestamp_ns": s.capture_timestamp_ns,
-            "accel_msec2": list(s.accel_msec2),
-            "gyro_radsec": list(s.gyro_radsec),
-        })
+        pass
 
     def on_magneto_received(self, sample) -> None:
         pass

@@ -5,10 +5,9 @@ use rerun::{RecordingStream, RecordingStreamBuilder, Points2D, Color};
 
 use crate::{
     device_stream,
-    msckf,
     navigation,
 };
-use crate::sensor_data::{SensorData, ImuMessage, ImageMessage};
+use crate::sensor_data::{StateMessage};
 
 pub struct Sina {
 }
@@ -22,29 +21,22 @@ impl Sina {
     pub fn launch(&mut self, semantic_path: String) -> anyhow::Result<()> {
         let record: RecordingStream = RecordingStreamBuilder::new("SINA").spawn()?;
 
-        let sensor_rx = Self::start_sensor_stream();
-        let (imu_tx, image_tx, pos3_rx) = Self::start_msckf(record.clone());
-        let pos2_tx = Self::start_navigator(record.clone(), semantic_path);
+        let rawstate_rx = Self::start_sensor_stream();
+        let state_tx = Self::start_navigator(record.clone(), semantic_path);
 
-        // FIX: multiplexing with crossbeam to avoid the busy-spin loop
         loop {
-            if let Ok(sensor_data) = sensor_rx.try_recv() {
-                match sensor_data {
-                    SensorData::Imu(imu) => imu_tx.send(imu)?,
-                    SensorData::Image(image) => image_tx.send(image)?,
-                }
-            }
-            if let Ok(pos3) = pos3_rx.try_recv() {
-                let pos2: navigation::Point = (pos3.x, pos3.y).into();
-                pos2_tx.send(pos2)?;
+            if let Ok(message) = rawstate_rx.try_recv() {
+                let pos: navigation::Point = (message.position[0], message.position[1]).into();
+                let dir: navigation::Point = (message.rotation[0], message.rotation[1]).into();
+                state_tx.send((pos, dir))?;
             }
         }
 
         Ok(())
     }
 
-    fn start_sensor_stream() -> mpsc::Receiver<SensorData> {
-        let (tx, rx): (mpsc::Sender<SensorData>, mpsc::Receiver<SensorData>) = mpsc::channel();
+    fn start_sensor_stream() -> mpsc::Receiver<StateMessage> {
+        let (tx, rx): (mpsc::Sender<StateMessage>, mpsc::Receiver<StateMessage>) = mpsc::channel();
 
         let stream_args = vec![
             "--interface",
@@ -62,24 +54,8 @@ impl Sina {
         rx
     }
 
-    fn start_msckf(record: RecordingStream) -> (
-        mpsc::Sender<ImuMessage>,
-        mpsc::Sender<ImageMessage>,
-        mpsc::Receiver<Vector3<f64>>
-        ) {
-        let (imu_tx, imu_rx): (mpsc::Sender<ImuMessage>, mpsc::Receiver<ImuMessage>) = mpsc::channel();
-        let (image_tx, image_rx): (mpsc::Sender<ImageMessage>, mpsc::Receiver<ImageMessage>) = mpsc::channel();
-        let (pos_tx, pos_rx): (mpsc::Sender<Vector3<f64>>, mpsc::Receiver<Vector3<f64>>) = mpsc::channel();
-
-        let _ = thread::Builder::new()
-            .name("MSCKF thread".to_string())
-            .spawn(move || msckf::MSCKF::new().launch(record, imu_rx, image_rx, pos_tx).unwrap());
-
-        (imu_tx, image_tx, pos_rx)
-    }
-
-    fn start_navigator(record: RecordingStream, semantic_path: String) -> mpsc::Sender<navigation::Point> {
-        let (tx, rx): (mpsc::Sender<navigation::Point>, mpsc::Receiver<navigation::Point>) = mpsc::channel();
+    fn start_navigator(record: RecordingStream, semantic_path: String) -> mpsc::Sender<(navigation::Point, navigation::Point)> {
+        let (tx, rx): (mpsc::Sender<(navigation::Point, navigation::Point)>, mpsc::Receiver<(navigation::Point, navigation::Point)>) = mpsc::channel();
 
         let _ = thread::Builder::new()
             .name("Navigator thread".to_string())

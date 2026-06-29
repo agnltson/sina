@@ -88,28 +88,6 @@ def main():
         sensors_calib_json
     )
 
-    slam1_calib = sensors_calib.get_camera_calib(
-        "camera-slam-left"
-    )
-
-    slam2_calib = sensors_calib.get_camera_calib(
-        "camera-slam-right"
-    )
-
-    dst_slam1 = get_linear_camera_calibration(
-        PINHOLE_WIDTH,
-        PINHOLE_HEIGHT,
-        PINHOLE_FOCAL_LENGTH,
-        "camera-slam-left",
-    )
-
-    dst_slam2 = get_linear_camera_calibration(
-        PINHOLE_WIDTH,
-        PINHOLE_HEIGHT,
-        PINHOLE_FOCAL_LENGTH,
-        "camera-slam-right",
-    )
-
     streaming_client = streaming_manager.streaming_client
 
     # 4. Set custom config for streaming
@@ -131,12 +109,7 @@ def main():
     streaming_state = streaming_manager.streaming_state
     print(f"Streaming state: {streaming_state}")
 
-    observer = ZMQDataSender(
-        slam1_calib=slam1_calib,
-        slam2_calib=slam2_calib,
-        dst_slam1=dst_slam1,
-        dst_slam2=dst_slam2,
-    )
+    observer = ZMQDataSender()
 
     streaming_client.set_streaming_client_observer(observer)
 

@@ -4,11 +4,12 @@ use std::sync::mpsc;
 
 use super::navgraph::NavGraph;
 use super::Point;
-use crate::sensor_data::SensorData;
+use crate::sensor_data::StateMessage;
 
 pub struct Navigator {
      navgraph: NavGraph,
      position: Option<Point>,
+     direction: Option<Point>,
      path: Option<Vec<usize>>,
 }
 
@@ -17,17 +18,19 @@ impl Navigator {
         Self {
             navgraph: NavGraph::new(&filepath),
             position: Some((0.0, 0.0).into()),
+            direction: Some((0.0, 0.0).into()),
             path: None,
         }
     }
 
     // This will host all the semantic navigation
-    pub fn launch(&mut self, record: RecordingStream, pos_rx: mpsc::Receiver<Point>) -> anyhow::Result<()> {
+    pub fn launch(&mut self, record: RecordingStream, state_rx: mpsc::Receiver<(Point, Point)>) -> anyhow::Result<()> {
         self.log_plan(&record, "navigator")?;
         loop {
             // blocking because nothing to compute if the position is unchanged
-            if let Ok(pos) = pos_rx.recv() {
+            if let Ok((pos, dir)) = state_rx.recv() {
                 self.position = Some(pos);
+                self.direction = Some(dir);
             }
             self.log_position(&record, "navigator/position")?;
         }
