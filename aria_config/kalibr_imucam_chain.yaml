@@ -1,0 +1,29 @@
+%YAML:1.0
+
+cam0:
+  T_imu_cam:
+    - [-0.00850024,  0.99988281, -0.01273245,  0.00058498]
+    - [ 0.99647865,  0.00740777, -0.08351896, -0.00020483]
+    - [-0.08341486, -0.01339755, -0.99642484, -0.00659877]
+    - [ 0.0, 0.0, 0.0, 1.0]
+  cam_overlaps: [1]
+  camera_model: pinhole
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  distortion_model: radtan
+  intrinsics: [150.0, 150.0, 256.0, 256.0]  # fu, fv, cu, cv
+  resolution: [512, 512]
+  rostopic: /aria/camera/left/image_raw
+
+cam1:
+  T_imu_cam:
+    - [ 0.04295091,  0.22401962, -0.97363773,  0.00430832]
+    - [ 0.99186191, -0.12647198,  0.01465552,  0.10241051]
+    - [-0.11985477, -0.96634365, -0.22762861, -0.08586357]
+    - [ 0.0, 0.0, 0.0, 1.0]
+  cam_overlaps: [0]
+  camera_model: pinhole
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  distortion_model: radtan
+  intrinsics: [150.0, 150.0, 256.0, 256.0]  # fu, fv, cu, cv
+  resolution: [512, 512]
+  rostopic: /aria/camera/right/image_raw

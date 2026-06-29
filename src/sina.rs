@@ -1,5 +1,6 @@
 use std::sync::mpsc;
 use std::thread;
+use std::process::Child;
 use nalgebra::Vector3;
 use rerun::{RecordingStream, RecordingStreamBuilder, Points2D, Color};
 use std::process::{Command, Stdio};
@@ -21,8 +22,8 @@ impl Sina {
     pub fn launch(&mut self, semantic_path: String) -> anyhow::Result<()> {
         let record: RecordingStream = RecordingStreamBuilder::new("SINA").spawn()?;
 
-        Self::start_openvins()?;
-        Self::start_python_publisher()?;
+        let openvins = Self::start_openvins()?;
+        let python = Self::start_python_publisher()?;
 
         let pos_rx = Self::start_odometry_subscriber();
         let pos_tx = Self::start_navigator(record, semantic_path);
@@ -30,27 +31,33 @@ impl Sina {
         loop {
             if let Ok(pos) = pos_rx.try_recv() {
                 println!("received pos: {:?}", pos);
+                pos_tx.send((pos.x, pos.y).into())?;
             }
         }
+        openvins.kill()?;
+        openvins.wait()?;
+        python.kill()?;
+        python.wait()?;
 
         Ok(())
     }
 
-    fn start_openvins() -> anyhow::Result<()> {
-        let _openvins = Command::new("bash")
+    fn start_openvins() -> anyhow::Result<Child> {
+        let openvins = Command::new("bash")
             .arg("-c")
             .arg("source /opt/ros/humble/setup.bash && \
                   source /root/ov_ws/install/setup.bash && \
                   ros2 launch ov_msckf subscribe.launch.py \
-                  config:=/root/sina/aria_openVINS.yaml")
+                  config_path:=/root/stage/sina/aria_config/estimator_config.yaml")
+            .env("HOME", "/root")
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .spawn()?;
-        Ok(())
+        Ok(openvins)
     }
 
-    fn start_python_publisher() -> anyhow::Result<()> {
-        let _ = Command::new("bash")
+    fn start_python_publisher() -> anyhow::Result<Child> {
+        let python = Command::new("bash")
             .arg("-c")
             .arg("source /opt/ros/humble/setup.bash && \
                   python3 stream/device_stream.py \
@@ -60,7 +67,7 @@ impl Sina {
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .spawn()?;
-        Ok(())
+        Ok(python)
     }
 
     fn start_odometry_subscriber() -> mpsc::Receiver<Vector3<f64>> {
