@@ -1,10 +1,6 @@
 use std::env;
 
 mod navigation;
-mod msckf;
-mod device_stream;
-mod sensor_data;
-mod sensor_buffer;
 mod sina;
 
 fn main() -> anyhow::Result<()> {
@@ -16,8 +12,7 @@ fn main() -> anyhow::Result<()> {
     let file_id = env::args().nth(1).unwrap();
 
     let prefix = String::from("input/");
-    let suffix = String::from("/ase_scene_language.txt");
-    let filepath = prefix + &file_id.as_str() + &suffix;
+    let filepath = prefix + &file_id.as_str();
 
     let mut sina = sina::Sina::new();
     sina.launch(filepath)?;

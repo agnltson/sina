@@ -9,18 +9,19 @@ use super::utils::Point;
 use super::parser::parse_raw_data;
 use super::{data::Data, room_topology::RoomTopology, navmesh::NavMesh};
 
+#[derive(Debug)]
 pub struct NavNode {
     pub centroid: Point,
     pub polygon_index: usize,
-    pub area: f32,
-    pub min_altitude: f32,
 }
 
+#[derive(Debug)]
 pub struct NavEdge {
     pub to: usize,
     pub cost: OrderedFloat<f32>,
 }
 
+#[derive(Debug)]
 pub struct NavGraph {
     pub nodes: Vec<NavNode>,
     pub edges: Vec<Vec<NavEdge>>,
@@ -31,7 +32,9 @@ pub struct NavGraph {
 
 impl NavGraph {
     pub fn new(filepath: &str) -> Self {
-        let mut file = fs::File::open(&filepath).unwrap_or_else( |e| { eprintln!("{}: '{}'", e, filepath); process::exit(1) });
+        let file_name = "/ase_scene_language.txt";
+        let mut file = fs::File::open(String::from(filepath) + file_name)
+            .unwrap_or_else( |e| { eprintln!("{}: '{}'", e, String::from(filepath) + file_name); process::exit(1) });
         let mut contents = String::new();
         let _ = file.read_to_string(&mut contents);
 
@@ -45,8 +48,6 @@ impl NavGraph {
             NavNode {
                 centroid: poly.centroid(),
                 polygon_index: i,
-                area: poly.area(),
-                min_altitude: poly.min_altitude(),
             }
         }).collect();
 

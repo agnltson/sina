@@ -6,11 +6,9 @@ use winnow::error::ModalResult;
 use ordered_float::OrderedFloat;
 
 pub fn parse_id(input: &mut &str) -> ModalResult<i64> {
-    let (_sign, digits) = (opt(one_of(['+', '-'])), digit1).parse_next(input)?;
-
+    let (sign, digits) = (opt(one_of(['+', '-'])), digit1).parse_next(input)?;
     let value: i64 = digits.parse::<i64>().unwrap();
-
-    Ok(value)
+    Ok(if sign == Some('-') { -value } else { value })
 }
 
 pub fn parse_float(input: &mut &str) -> ModalResult<OrderedFloat<f32>> {

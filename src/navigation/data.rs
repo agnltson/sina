@@ -8,6 +8,7 @@ use super::data::bbox::BBox;
 use super::raw_data::RawData;
 
 // After clean up and projection from raw data
+#[derive(Debug)]
 pub struct Data {
     pub walls: Vec<Wall>,
     pub doors: Vec<Door>,

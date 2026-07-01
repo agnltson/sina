@@ -39,6 +39,7 @@ impl FloatPointCompatible for Point {
     fn y(&self) -> f32 { self.y.into_inner() }
 }
 
+#[derive(Debug)]
 pub struct RoomTopology {
     pub borders: Vec<Polygon>,
     pub holes: Vec<Polygon>,

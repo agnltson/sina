@@ -4,11 +4,13 @@ use super::room_cdt::RoomCDT;
 use super::room_topology::RoomTopology;
 use super::utils::{Point, Polygon};
 
+#[derive(Debug)]
 pub struct NavPolygon {
     pub vertices: Vec<Point>,
     pub neighbours: Vec<usize>,
 }
 
+#[derive(Debug)]
 pub struct NavMesh {
     pub polygons: Vec<Polygon>,
     pub adjacency: Vec<Vec<usize>>,
