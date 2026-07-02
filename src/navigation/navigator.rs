@@ -20,19 +20,8 @@ impl Navigator {
     }
 
     pub fn compute_path(&self, start: (f64, f64), end: (f64, f64)) -> Option<Path> {
-        let start_node_opt = self.navgraph.nearest_centroid(start.into());
-        let end_node_opt = self.navgraph.nearest_centroid(end.into());
-        match (start_node_opt, end_node_opt) {
-            (Some(start_id), Some(end_id)) => {
-                if let Some(node_path) = self.navgraph.astar(start_id, end_id) {
-                    let point_path = node_path.into_iter()
-                        .map(|id| { let i = id as usize; self.navgraph.nodes[id].centroid })
-                        .collect();
-                    Some(Path::from_points(point_path))
-                } else { None }
-            },
-            _ => None
-        }
+        let point_path = self.navgraph.find_path(start.into(), end.into())?;
+        Some(Path::from_points(point_path))
     }
 
     pub fn launch(&mut self, record: &RecordingStream) -> anyhow::Result<()> {
