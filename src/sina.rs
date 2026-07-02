@@ -1,7 +1,17 @@
+use std::{
+    thread,
+    sync::mpsc,
+};
 use nalgebra::Vector3;
 use rerun::{RecordingStream, RecordingStreamBuilder, Points2D, Color};
 
-use crate::navigation;
+use crate::{
+    navigation,
+    device_stream,
+    sensor_data::{
+        SensorData,
+    },
+};
 
 pub struct Sina {
     navigator: navigation::Navigator,
@@ -23,6 +33,22 @@ impl Sina {
         Ok(())
     }
 
-    pub fn path(&self) {
+    fn start_sensor_stream() -> mpsc::Receiver<SensorData> {
+        let (tx, rx): (mpsc::Sender<SensorData>, mpsc::Receiver<SensorData>) = mpsc::channel();
+
+        let stream_args = vec![
+            "--interface",
+            "wifi",
+            "--device-ip",
+            "10.69.83.218",
+            "--profile",
+            "profile14",
+        ];
+
+        let _ = thread::Builder::new()
+            .name("Sensor data streaming thread".to_string())
+            .spawn(move || device_stream::DeviceStream::new(stream_args).launch(tx).unwrap());
+
+        rx
     }
 }

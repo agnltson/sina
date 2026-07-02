@@ -1,6 +1,8 @@
 use std::env;
 
 mod navigation;
+mod device_stream;
+mod sensor_data;
 mod sina;
 
 fn main() -> anyhow::Result<()> {
