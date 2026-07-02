@@ -31,6 +31,8 @@ pub struct NavGraph {
 }
 
 impl NavGraph {
+    const AGENT_WIDTH: f32 = 0.6;
+
     pub fn new(filepath: &str) -> Self {
         let file_name = "/ase_scene_language.txt";
         let mut file = fs::File::open(String::from(filepath) + file_name)
@@ -52,15 +54,51 @@ impl NavGraph {
         }).collect();
 
         let edges: Vec<Vec<NavEdge>> = navmesh.adjacency.iter().enumerate().map(|(i, neighbours)| {
-            neighbours.iter().map(|&j| {
+            neighbours.iter().filter_map(|&j| {
                 let a = nodes[i].centroid;
                 let b = nodes[j].centroid;
+
+                if !Self::is_walkable(&room_topology, a, b) {
+                    return None;
+                }
                 let cost = (b - a).length();
-                NavEdge { to: j, cost }
+                Some(NavEdge { to: j, cost })
             }).collect()
         }).collect();
 
         NavGraph { nodes, edges, room_data, room_topology, navmesh }
+    }
+
+    fn is_walkable(
+        room_topology: &RoomTopology,
+        origin: Point,
+        end: Point,
+    ) -> bool {
+        let direction = end - origin;
+
+        let unit = direction.to_unit();
+
+        let perp = Point {
+            x: -unit.y,
+            y: unit.x,
+        };
+
+        let half_width = OrderedFloat(Self::AGENT_WIDTH / 2.0);
+        let offset = Point {
+            x: perp.x * half_width,
+            y: perp.y * half_width,
+        };
+
+        let left_a = origin + offset;
+        let left_b = end + offset;
+        let right_a = origin - offset;
+        let right_b = end - offset;
+
+        let center_hit = room_topology.is_segment_intersecting((origin, end));
+        let left_hit = room_topology.is_segment_intersecting((left_a, left_b));
+        let right_hit = room_topology.is_segment_intersecting((right_a, right_b));
+
+        !(center_hit || left_hit || right_hit)
     }
 
     pub fn log(
@@ -72,9 +110,6 @@ impl NavGraph {
         let _ = self.room_topology.log(&rec, log_path);
         let _ = self.navmesh.log(&rec, log_path);
 
-        // -------------------------
-        // NODES (centroids)
-        // -------------------------
         let points: Vec<[f32; 2]> = self
             .nodes
             .iter()
@@ -89,9 +124,6 @@ impl NavGraph {
             &Points2D::new(points),
         )?;
 
-        // -------------------------
-        // EDGES (graph connections)
-        // -------------------------
         let mut edge_lines = Vec::new();
 
         for (i, edges) in self.edges.iter().enumerate() {
@@ -110,10 +142,23 @@ impl NavGraph {
         rec.log(
             format!("{}/navgraph/edges", log_path).as_str(),
             &LineStrips2D::new(edge_lines)
-                .with_colors([Color::from_rgb(80, 80, 255)]), // blue-ish
+                .with_colors([Color::from_rgb(80, 80, 255)]),
         )?;
 
         Ok(())
+    }
+
+    pub fn nearest_centroid(&self, point: Point) -> Option<usize> {
+        let in_room = self.navmesh.polygons.iter().any(|poly| poly.contains(point));
+        if !in_room {
+            return None;
+        }
+
+        self.nodes
+            .iter()
+            .enumerate()
+            .min_by_key(|(_, node)| (node.centroid - point).length())
+            .map(|(i, _)| i)
     }
 
     pub fn astar(&self, start: usize, goal: usize) -> Option<Vec<usize>> {
@@ -165,15 +210,11 @@ impl NavGraph {
         rec: &RecordingStream,
         log_path: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // Waypoint centroids as points
         let points: Vec<[f32; 2]> = path.iter().map(|&i| {
             let c = self.nodes[i].centroid;
             [c.x.into_inner(), c.y.into_inner()]
         }).collect();
 
-        //rec.log("nav/waypoints", &Points2D::new(points.clone()))?;
-
-        // Connect them as a line strip
         if path.len() >= 2 {
             rec.log(String::from(log_path) + "nav/path", &LineStrips2D::new(vec![points]))?;
         }

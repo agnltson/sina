@@ -281,8 +281,8 @@ pub fn graph_into_polygons(graph: &RoomGraph) -> Vec<Polygon> {
 use i_overlay::mesh::outline::offset::OutlineOffset;
 use i_overlay::mesh::style::{LineJoin, OutlineStyle};
 
-const WALL_MARGIN: f32 = 0.1;    // shrink borders inward
-const OBJECT_MARGIN: f32 = 0.1;  // grow holes outward
+const WALL_MARGIN: f32 = 0.25;    // shrink borders inward
+const OBJECT_MARGIN: f32 = 0.25;  // grow holes outward
 
 fn shrink_polygon(polygon: &Polygon) -> Option<Polygon> {
     offset_polygon(polygon, -WALL_MARGIN)

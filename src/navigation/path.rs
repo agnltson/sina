@@ -14,7 +14,13 @@ pub struct Path {
 }
 
 impl Path {
-    pub fn new(filepath: &str) -> Self {
+    pub fn from_points(points: Vec<Point>) -> Self {
+        Self {
+            pos: points,
+        }
+    }
+
+    pub fn from_closed_loop(filepath: &str) -> Self {
         let source_name = "trajectory.csv";
         let full_path = format!("{}/{}", filepath, source_name);
 
@@ -28,7 +34,6 @@ impl Path {
             let line = line.unwrap_or_else(|e| panic!("Reading error line {}: {}", i, e));
 
             if i == 0 {
-                println!("first line: {}", line);
                 continue;
             }
 

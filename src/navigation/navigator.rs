@@ -8,20 +8,36 @@ use super::Point;
 
 pub struct Navigator {
      navgraph: NavGraph,
-     path: Path,
+     video_path: Path,
 }
 
 impl Navigator {
     pub fn new(filepath: String) -> Self {
         Self {
             navgraph: NavGraph::new(&filepath),
-            path: Path::new(&filepath),
+            video_path: Path::from_closed_loop(&filepath),
         }
     }
 
-    pub fn launch(&mut self, record: RecordingStream) -> anyhow::Result<()> {
+    pub fn compute_path(&self, start: (f64, f64), end: (f64, f64)) -> Option<Path> {
+        let start_node_opt = self.navgraph.nearest_centroid(start.into());
+        let end_node_opt = self.navgraph.nearest_centroid(end.into());
+        match (start_node_opt, end_node_opt) {
+            (Some(start_id), Some(end_id)) => {
+                if let Some(node_path) = self.navgraph.astar(start_id, end_id) {
+                    let point_path = node_path.into_iter()
+                        .map(|id| { let i = id as usize; self.navgraph.nodes[id].centroid })
+                        .collect();
+                    Some(Path::from_points(point_path))
+                } else { None }
+            },
+            _ => None
+        }
+    }
+
+    pub fn launch(&mut self, record: &RecordingStream) -> anyhow::Result<()> {
         self.log_plan(&record, "navigator")?;
-        self.log_path(&record, "navigator")?;
+        self.log_videopath(&record, "navigator")?;
         Ok(())
     }
 
@@ -33,10 +49,10 @@ impl Navigator {
         Ok(())
     }
 
-    fn log_path(&self, record: &RecordingStream, log_path: &str) -> anyhow::Result<()> {
-        self.path.log(
+    fn log_videopath(&self, record: &RecordingStream, log_path: &str) -> anyhow::Result<()> {
+        self.video_path.log(
             record,
-            format!("{}/plan", log_path).as_str(),
+            format!("{}/video_path", log_path).as_str(),
             )?;
         Ok(())
     }
