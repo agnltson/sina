@@ -31,8 +31,6 @@ pub struct NavGraph {
 }
 
 impl NavGraph {
-    const AGENT_WIDTH: f32 = 0.6;
-
     pub fn new(filepath: &str) -> Self {
         let file_name = "/ase_scene_language.txt";
         let mut file = fs::File::open(String::from(filepath) + file_name)
