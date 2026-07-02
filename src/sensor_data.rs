@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use base64::Engine;
-use nalgebra::{Vector3, Quaternion};
+use nalgebra::Vector3;
 
 use std::cmp::Ordering;
 
@@ -12,7 +12,7 @@ pub enum SensorData {
 #[derive(Debug, Deserialize)]
 pub struct RawImuMessage {
     #[serde(rename = "type")]
-    pub msg_type: String,
+    pub _msg_type: String,
     pub imu_idx: u32,
     pub timestamp_ns: u64,
     pub accel_msec2: [f64; 3],
@@ -63,7 +63,7 @@ impl ImuMessage {
 #[derive(Debug, Deserialize)]
 pub struct RawImageMessage {
     #[serde(rename = "type")]
-    pub msg_type: String,
+    pub _msg_type: String,
     pub camera: String,
     pub timestamp_ns: u64,
     // base64-encoded JPEG string from Python

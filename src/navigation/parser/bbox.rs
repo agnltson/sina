@@ -8,7 +8,7 @@ use super::utils;
 pub fn parse_bbox(input: &mut &str) -> ModalResult<RawBBox> {
     "make_bbox".parse_next(input)?;
     ", id=".parse_next(input)?;
-    let id = utils::parse_id.parse_next(input)?;
+    let _id = utils::parse_id.parse_next(input)?;
 
     ", class=".parse_next(input)?;
     let _class = utils::parse_class.parse_next(input)?;
@@ -34,5 +34,5 @@ pub fn parse_bbox(input: &mut &str) -> ModalResult<RawBBox> {
 
     utils::parse_end_of_line.parse_next(input)?;
 
-    Ok(RawBBox::new(id, position, angle, scale))
+    Ok(RawBBox::new(position, angle, scale))
 }

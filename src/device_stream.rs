@@ -19,7 +19,7 @@ impl<'a> DeviceStream<'a> {
 
     pub fn launch(&self, sensor_data_tx: mpsc::Sender<SensorData>) -> anyhow::Result<()> {
         println!("Launching sensor data stream");
-        let mut child = Command::new("python")
+        let child = Command::new("python")
             .arg("stream/device_stream.py")
             .args(&self.stream_args)
             .stdout(Stdio::inherit())
@@ -43,7 +43,8 @@ impl<'a> DeviceStream<'a> {
                     if imu.imu_idx == 0 {
                         let sd: SensorData = SensorData::Imu(imu);
                         sensor_data_tx.send(sd)?;
-                    }                }
+                    }
+                }
 
                 Some("slam_image") => {
                     let sd: SensorData = SensorData::Image(ImageMessage::from_json(&msg)?);

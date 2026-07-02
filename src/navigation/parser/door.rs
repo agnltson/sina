@@ -14,7 +14,7 @@ pub fn parse_door(input: &mut &str) -> ModalResult<RawDoor> {
     let wall0_id = utils::parse_id.parse_next(input)?;
 
     ", wall1_id=".parse_next(input)?;
-    let wall1_id = utils::parse_id.parse_next(input)?;
+    let _wall1_id = utils::parse_id.parse_next(input)?;
 
     ", position_x=".parse_next(input)?;
     let position_x = utils::parse_float.parse_next(input)?;
@@ -28,9 +28,9 @@ pub fn parse_door(input: &mut &str) -> ModalResult<RawDoor> {
     let width = utils::parse_float.parse_next(input)?;
 
     ", height=".parse_next(input)?;
-    let height = utils::parse_float.parse_next(input)?;
+    let _height = utils::parse_float.parse_next(input)?;
 
     utils::parse_end_of_line.parse_next(input)?;
 
-    Ok(RawDoor::new(id, wall0_id, wall1_id, position, width, height))
+    Ok(RawDoor::new(id, wall0_id, position, width))
 }

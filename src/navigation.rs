@@ -12,5 +12,3 @@ pub mod navigator;
 
 pub use navigator::Navigator;
 pub use utils::Point;
-
-use nalgebra::Vector3;

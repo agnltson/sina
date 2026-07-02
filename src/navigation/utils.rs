@@ -1,7 +1,6 @@
 use std::ops::{Sub, Add};
 use ordered_float::OrderedFloat;
 use spade::{Point2};
-use rerun::{Points2D, RecordingStream};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vec3 {

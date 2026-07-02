@@ -1,10 +1,7 @@
-use rerun::{RecordingStreamBuilder, RecordingStream, EncodedImage, Color, Points2D};
-use nalgebra::Vector3;
-use std::sync::mpsc;
+use rerun::RecordingStream;
 
 use super::navgraph::NavGraph;
 use super::path::Path;
-use super::Point;
 
 pub struct Navigator {
      navgraph: NavGraph,

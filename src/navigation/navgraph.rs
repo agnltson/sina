@@ -12,7 +12,6 @@ use super::{data::Data, room_topology::RoomTopology, navmesh::NavMesh};
 #[derive(Debug)]
 pub struct NavNode {
     pub centroid: Point,
-    pub polygon_index: usize,
 }
 
 #[derive(Debug)]
@@ -44,10 +43,9 @@ impl NavGraph {
         let room_topology: RoomTopology = (&room_data).into();
         let navmesh: NavMesh = (&room_topology).into();
 
-        let nodes: Vec<NavNode> = navmesh.polygons.iter().enumerate().map(|(i, poly)| {
+        let nodes: Vec<NavNode> = navmesh.polygons.iter().map(|poly| {
             NavNode {
                 centroid: poly.centroid(),
-                polygon_index: i,
             }
         }).collect();
 
@@ -216,24 +214,6 @@ impl NavGraph {
             .enumerate()
             .min_by_key(|(_, node)| (node.centroid - point).length())
             .map(|(i, _)| i)
-    }
-
-    pub fn render_rerun_path(
-        &self,
-        path: &[usize],
-        rec: &RecordingStream,
-        log_path: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let points: Vec<[f32; 2]> = path.iter().map(|&i| {
-            let c = self.nodes[i].centroid;
-            [c.x.into_inner(), c.y.into_inner()]
-        }).collect();
-
-        if path.len() >= 2 {
-            rec.log(String::from(log_path) + "nav/path", &LineStrips2D::new(vec![points]))?;
-        }
-
-        Ok(())
     }
 
     pub fn log(

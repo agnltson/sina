@@ -5,32 +5,16 @@ use super::utils::Point;
 use super::data::{Data, door::Door};
 use super::raw_data::RawData;
 
-pub struct Node {
-    pub id: i64,
-    pub pos: Point,
-}
-
-impl Node {
-    pub fn new(id: i64, pos: Point) -> Self {
-        Self {
-            id,
-            pos,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Edge {
-    pub id: i64,
     pub a: Point,
     pub b: Point,
     pub doors: Vec<Door>,
 }
 
 impl Edge {
-    pub fn new(id: i64, a: Point, b: Point, doors: Vec<Door>) -> Self {
+    pub fn new(a: Point, b: Point, doors: Vec<Door>) -> Self {
         Self {
-            id,
             a,
             b,
             doors,
@@ -55,7 +39,6 @@ impl RoomGraph {
 impl From<&Data> for RoomGraph {
     fn from(data: &Data) -> Self {
         let mut node_id = 0;
-        let mut edge_id = 0;
 
         let mut edges: Vec<Edge> = Vec::new();
         let mut id_to_point = HashMap::new();
@@ -93,8 +76,7 @@ impl From<&Data> for RoomGraph {
                     .filter(|d| d.wall_id == id)
                     .collect();
 
-                edges.push(Edge::new(edge_id, start, end, attached_doors));
-                edge_id += 1;
+                edges.push(Edge::new(start, end, attached_doors));
             }
         }
 
@@ -106,53 +88,5 @@ impl From<RawData> for RoomGraph {
     fn from(raw_data: RawData) -> Self {
         let data: Data = raw_data.into();
         (&data).into()
-    }
-}
-
-impl RoomGraph {
-    pub fn render_rerun(
-        &self,
-        rec: &RecordingStream,
-        log_path: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-
-        // -------------------------
-        // NODES
-        // -------------------------
-        let mut points = Vec::new();
-
-        for (_id, pos) in &self.nodes {
-            points.push([
-                pos.x.into_inner(),
-                pos.y.into_inner(),
-            ]);
-        }
-
-        rec.log(
-            String::from(log_path) + "graph/nodes",
-            &Points2D::new(points),
-        )?;
-
-        // -------------------------
-        // EDGES
-        // -------------------------
-        let mut lines = Vec::new();
-
-        for edge in &self.edges {
-            let a = edge.a;
-            let b = edge.b;
-
-            lines.push(vec![
-                [a.x.into_inner(), a.y.into_inner()],
-                [b.x.into_inner(), b.y.into_inner()],
-            ]);
-        }
-
-        rec.log(
-            String::from(log_path) + "graph/edges",
-            &LineStrips2D::new(lines),
-        )?;
-
-        Ok(())
     }
 }

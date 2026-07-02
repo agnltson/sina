@@ -2,8 +2,7 @@ use std::{
     thread,
     sync::mpsc,
 };
-use nalgebra::Vector3;
-use rerun::{RecordingStream, RecordingStreamBuilder, Points2D, Color};
+use rerun::{RecordingStream, RecordingStreamBuilder};
 
 use crate::{
     navigation,
@@ -25,6 +24,7 @@ impl Sina {
     }
 
     pub fn launch(&mut self, start: (f64, f64), end: (f64, f64)) -> anyhow::Result<()> {
+        let _ = Self::start_sensor_stream();
         let record: RecordingStream = RecordingStreamBuilder::new("SINA").spawn()?;
         self.navigator.launch(&record)?;
         if let Some(p) = self.navigator.compute_path(start, end) {
