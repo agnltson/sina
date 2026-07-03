@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use rerun::{LineStrips2D, Points2D, RecordingStream};
 
 use super::utils::Point;
 use super::data::{Data, door::Door};
