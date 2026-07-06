@@ -27,8 +27,8 @@ class ZMQDataSender:
         self.dst_rgb = dst_rgb
         self._latest_image = None
         self._latest_record = None
-        self._state_lock = threading.Lock()   # protège _latest_image / _latest_record
-        self._socket_lock = threading.Lock()  # protège uniquement l'accès au socket ZMQ
+        self._state_lock = threading.Lock()
+        self._socket_lock = threading.Lock()
 
         ctx = zmq.Context.instance()
         self.socket = ctx.socket(zmq.PUB)

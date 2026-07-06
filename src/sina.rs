@@ -4,7 +4,11 @@ use std::{
     collections::HashMap,
 };
 use rerun::{RecordingStream, RecordingStreamBuilder};
-use nalgebra::Vector3;
+use nalgebra::{
+    Vector2,
+    Vector3,
+    UnitQuaternion,
+};
 
 use crate::{
     navigation,
@@ -39,18 +43,21 @@ impl Sina {
             if let Ok(sensor_data) = sensor_rx.try_recv() {
                 sensor_tx.send(sensor_data)?;
             }
-            if let Ok(pos3) = pos_rx.try_recv() {
-                let point: navigation::Point = (pos3.x, pos3.y).into();
-                point_tx.send(point)?;
+            if let Ok((pos3, orient4)) = pos_rx.try_recv() {
+                let pos_point: navigation::Point = (pos3.x, pos3.y).into();
+                let heading = camera_heading_xy(&orient4);
+                point_tx.send((pos_point, heading))?;
             }
         }
 
         Ok(())
     }
 
-    fn start_positioning_system(record: RecordingStream) -> (mpsc::Sender<SensorData>, mpsc::Receiver<Vector3<f64>>) {
+    fn start_positioning_system(record: RecordingStream) -> (mpsc::Sender<SensorData>, mpsc::Receiver<(Vector3<f64>, UnitQuaternion<f64>)>) {
         let (sensor_tx, sensor_rx): (mpsc::Sender<SensorData>, mpsc::Receiver<SensorData>) = mpsc::channel();
-        let (position_tx, position_rx): (mpsc::Sender<Vector3<f64>>, mpsc::Receiver<Vector3<f64>>) = mpsc::channel();
+        let (position_tx, position_rx):
+            (mpsc::Sender<(Vector3<f64>, UnitQuaternion<f64>)>, mpsc::Receiver<(Vector3<f64>, UnitQuaternion<f64>)>)
+             = mpsc::channel();
 
         let _ = thread::Builder::new()
             .name("Positioning system thread".to_string())
@@ -78,12 +85,28 @@ impl Sina {
         rx
     }
 
-    fn start_navigator(record: RecordingStream, semantic_path: String) -> mpsc::Sender<navigation::Point> {
-        let (tx, rx): (mpsc::Sender<navigation::Point>, mpsc::Receiver<navigation::Point>) = mpsc::channel();
+    fn start_navigator(record: RecordingStream, semantic_path: String) -> mpsc::Sender<(navigation::Point, navigation::Point)> {
+        let (tx, rx):
+            (mpsc::Sender<(navigation::Point, navigation::Point)>, mpsc::Receiver<(navigation::Point, navigation::Point)>)
+             = mpsc::channel();
 
         let _ = thread::Builder::new()
             .name("Navigator thread".to_string())
             .spawn(move || navigation::Navigator::new(semantic_path).launch(record, rx).unwrap());
         tx
+    }
+}
+
+fn camera_heading_xy(orientation: &UnitQuaternion<f64>) -> navigation::Point {
+    let forward_world = orientation.transform_vector(&Vector3::new(0.0, 0.0, 1.0));
+
+    let heading = Vector2::new(forward_world.x, forward_world.y);
+    let norm = heading.norm();
+
+    if norm > 1e-6 {
+        let res = heading / norm;
+        (res.x, res.y).into()
+    } else {
+        (1.0, 0.0).into()
     }
 }
