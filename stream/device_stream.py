@@ -15,6 +15,7 @@
 import argparse
 import sys
 import time
+import threading
 
 import aria.sdk as aria
 
@@ -27,9 +28,9 @@ from projectaria_tools.core.calibration import (
     get_linear_camera_calibration,
 )
 
-PINHOLE_WIDTH = 512
-PINHOLE_HEIGHT = 512
-PINHOLE_FOCAL_LENGTH = 150
+PINHOLE_WIDTH = 1408
+PINHOLE_HEIGHT = 1408
+PINHOLE_FOCAL_LENGTH = 450
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -51,7 +52,7 @@ def parse_args() -> argparse.Namespace:
         "--profile",
         dest="profile_name",
         type=str,
-        default="profile18",
+        default="profile12",
         required=False,
         help="Profile to be used for streaming.",
     )
@@ -88,26 +89,13 @@ def main():
         sensors_calib_json
     )
 
-    slam1_calib = sensors_calib.get_camera_calib(
-        "camera-slam-left"
-    )
+    rgb_calib = sensors_calib.get_camera_calib("camera-rgb")
 
-    slam2_calib = sensors_calib.get_camera_calib(
-        "camera-slam-right"
-    )
-
-    dst_slam1 = get_linear_camera_calibration(
+    dst_rgb = get_linear_camera_calibration(
         PINHOLE_WIDTH,
         PINHOLE_HEIGHT,
         PINHOLE_FOCAL_LENGTH,
-        "camera-slam-left",
-    )
-
-    dst_slam2 = get_linear_camera_calibration(
-        PINHOLE_WIDTH,
-        PINHOLE_HEIGHT,
-        PINHOLE_FOCAL_LENGTH,
-        "camera-slam-right",
+        "camera-rgb",
     )
 
     streaming_client = streaming_manager.streaming_client
@@ -126,16 +114,21 @@ def main():
 
     # 5. Start streaming
     streaming_manager.start_streaming()
+    config = streaming_client.subscription_config
+    config.subscriber_data_type = (
+        aria.StreamingDataType.Rgb
+        | aria.StreamingDataType.Imu
+        | aria.StreamingDataType.Slam
+    )
+    streaming_client.subscription_config = config
 
     # 6. Get streaming state
     streaming_state = streaming_manager.streaming_state
     print(f"Streaming state: {streaming_state}")
 
     observer = ZMQDataSender(
-        slam1_calib=slam1_calib,
-        slam2_calib=slam2_calib,
-        dst_slam1=dst_slam1,
-        dst_slam2=dst_slam2,
+        rgb_calib=rgb_calib,
+        dst_rgb=dst_rgb,
     )
 
     streaming_client.set_streaming_client_observer(observer)
@@ -143,6 +136,8 @@ def main():
     streaming_client.subscribe()
 
     print("Streaming started")
+
+    threading.Thread(target=observer.process_loop, daemon=True).start()
 
     try:
         while True:

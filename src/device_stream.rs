@@ -46,7 +46,7 @@ impl<'a> DeviceStream<'a> {
                     }
                 }
 
-                Some("slam_image") => {
+                Some("rgb_image") => {
                     let sd: SensorData = SensorData::Image(ImageMessage::from_json(&msg)?);
                     sensor_data_tx.send(sd)?;
                 }

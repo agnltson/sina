@@ -64,15 +64,14 @@ impl ImuMessage {
 pub struct RawImageMessage {
     #[serde(rename = "type")]
     pub _msg_type: String,
-    pub camera: String,
+    #[serde(rename = "camera")]
+    pub _camera: String,
     pub timestamp_ns: u64,
-    // base64-encoded JPEG string from Python
     pub jpeg: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct ImageMessage {
-    pub camera: u8,
     pub timestamp_ns: u64,
     pub jpeg: Vec<u8>,
 }
@@ -102,7 +101,6 @@ impl ImageMessage {
         let raw: RawImageMessage = serde_json::from_str(&raw_str)?;
         let image: Vec<u8> = decode_jpeg(&raw.jpeg)?;
         Ok(Self {
-            camera: raw.camera.as_str().parse::<u8>()?,
             timestamp_ns: raw.timestamp_ns,
             jpeg: image,
         })

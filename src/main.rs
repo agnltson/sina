@@ -3,6 +3,7 @@ use std::env;
 mod navigation;
 mod device_stream;
 mod sensor_data;
+mod pos_sys;
 mod sina;
 
 fn main() -> anyhow::Result<()> {
@@ -16,8 +17,7 @@ fn main() -> anyhow::Result<()> {
     let prefix = String::from("input/");
     let filepath = prefix + &file_id.as_str();
 
-    let mut sina = sina::Sina::new(filepath);
-    sina.launch((-0.5, -3.0), (3.0, 5.0))?;
+    sina::Sina::new().launch(filepath, (-0.5, -3.0), (3.0, 5.0))?;
 
     Ok(())
 }

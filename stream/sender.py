@@ -17,65 +17,30 @@ import zmq
 import json
 import cv2
 import base64
+import time
+import threading
 
 class ZMQDataSender:
-    def __init__(
-        self,
-        slam1_calib,
-        slam2_calib,
-        dst_slam1,
-        dst_slam2,
-        endpoint="tcp://*:5555",
-    ):
-        self.slam1_calib = slam1_calib
-        self.slam2_calib = slam2_calib
-        self.dst_slam1 = dst_slam1
-        self.dst_slam2 = dst_slam2
+    def __init__(self, rgb_calib, dst_rgb, endpoint="tcp://*:5555"):
+        self.rgb_calib = rgb_calib
+        self.dst_rgb = dst_rgb
+        self._latest_image = None
+        self._latest_record = None
+        self._state_lock = threading.Lock()   # protège _latest_image / _latest_record
+        self._socket_lock = threading.Lock()  # protège uniquement l'accès au socket ZMQ
 
         ctx = zmq.Context.instance()
         self.socket = ctx.socket(zmq.PUB)
-
         self.socket.setsockopt(zmq.SNDHWM, 1000)
         self.socket.setsockopt(zmq.LINGER, 0)
-
         self.socket.bind(endpoint)
 
     def send(self, msg: dict):
-        self.socket.send_string(json.dumps(msg))
-
-    def on_image_received(self, image, record):
-
-        if record.camera_id == aria.CameraId.Slam1:
-            src_calib = self.slam1_calib
-            dst_calib = self.dst_slam1
-
-        elif record.camera_id == aria.CameraId.Slam2:
-            src_calib = self.slam2_calib
-            dst_calib = self.dst_slam2
-
-        else:
-            return
-
-        pinhole_image = distort_by_calibration(
-            image,
-            dst_calib,
-            src_calib,
-        )
-
-        ok, encoded = cv2.imencode(".jpg", pinhole_image)
-        if not ok:
-            return
-
-        self.send({
-            "type": "slam_image",
-            "camera": str(record.camera_id),
-            "timestamp_ns": record.capture_timestamp_ns,
-            "jpeg": base64.b64encode(encoded.tobytes()).decode("ascii"),
-        })
+        with self._socket_lock:
+            self.socket.send_string(json.dumps(msg))
 
     def on_imu_received(self, samples, imu_idx):
         s = samples[0]
-
         self.send({
             "type": "imu",
             "imu_idx": imu_idx,
@@ -84,11 +49,30 @@ class ZMQDataSender:
             "gyro_radsec": list(s.gyro_radsec),
         })
 
-    def on_magneto_received(self, sample) -> None:
-        pass
+    def on_image_received(self, image, record):
+        if int(record.camera_id) != int(aria.CameraId.Rgb):
+            return
+        with self._state_lock:
+            self._latest_image = image.copy()
+            self._latest_record = record
 
-    def on_baro_received(self, sample) -> None:
-        pass
+    def process_loop(self):
+        while True:
+            with self._state_lock:
+                image = self._latest_image
+                record = self._latest_record
+                self._latest_image = None
+            if image is None:
+                time.sleep(0.001)
+                continue
 
-    def on_streaming_client_failure(self, reason, message: str) -> None:
-        pass
+            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            ok, encoded = cv2.imencode(".jpg", rgb_image)
+            if not ok:
+                continue
+            self.send({
+                "type": "rgb_image",
+                "camera": "rgb",
+                "timestamp_ns": record.capture_timestamp_ns,
+                "jpeg": base64.b64encode(encoded.tobytes()).decode("ascii"),
+            })
