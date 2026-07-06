@@ -1,7 +1,7 @@
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
 
-use crate::sensor_data::{SensorData, ImuMessage, ImageMessage};
+use crate::sensor_data::{SensorData, MagMessage, ImageMessage};
 
 use zmq;
 use serde_json::Value;
@@ -37,13 +37,10 @@ impl<'a> DeviceStream<'a> {
             let v: Value = serde_json::from_str(&msg)?;
 
             match v["type"].as_str() {
-                Some("imu") => {
-                    let imu = ImuMessage::from_json(&msg)?;
-                    // We only send from imu 0 it's the fastest one
-                    if imu.imu_idx == 0 {
-                        let sd: SensorData = SensorData::Imu(imu);
-                        sensor_data_tx.send(sd)?;
-                    }
+                Some("mag") => {
+                    let mag = MagMessage::from_json(&msg)?;
+                    let sd: SensorData = SensorData::Mag(mag);
+                    sensor_data_tx.send(sd)?;
                 }
 
                 Some("rgb_image") => {
@@ -52,7 +49,7 @@ impl<'a> DeviceStream<'a> {
                 }
 
                 _ => {
-                    eprintln!("unknown message");
+                    eprintln!("unknown message: {}", v);
                 }
             }
         }

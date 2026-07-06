@@ -5,56 +5,50 @@ use nalgebra::Vector3;
 use std::cmp::Ordering;
 
 pub enum SensorData {
-    Imu(ImuMessage),
+    Mag(MagMessage),
     Image(ImageMessage),
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RawImuMessage {
+pub struct RawMagMessage {
     #[serde(rename = "type")]
     pub _msg_type: String,
-    pub imu_idx: u32,
     pub timestamp_ns: u64,
-    pub accel_msec2: [f64; 3],
-    pub gyro_radsec: [f64; 3],
+    pub mag_tesla: [f64; 3],
 }
 
 #[derive(Debug, Clone)]
-pub struct ImuMessage {
-    pub imu_idx: u32,
+pub struct MagMessage {
     pub timestamp_ns: u64,
-    pub accel_msec2: Vector3<f64>,
-    pub gyro_radsec: Vector3<f64>,
+    pub mag_tesla: Vector3<f64>,
 }
 
-impl Eq for ImuMessage {}
+impl Eq for MagMessage {}
 
-impl PartialEq for ImuMessage {
+impl PartialEq for MagMessage {
     fn eq(&self, other: &Self) -> bool {
         self.timestamp_ns.eq(&other.timestamp_ns)
     }
 }
 
-impl Ord for ImuMessage {
+impl Ord for MagMessage {
     fn cmp(&self, other: &Self) -> Ordering {
         self.timestamp_ns.cmp(&other.timestamp_ns).reverse()
     }
 }
 
-impl PartialOrd for ImuMessage {
+impl PartialOrd for MagMessage {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl ImuMessage {
+impl MagMessage {
     pub fn from_json(raw_str: &String) -> anyhow::Result<Self> {
-        let i: RawImuMessage = serde_json::from_str(&raw_str)?;
+        let i: RawMagMessage = serde_json::from_str(&raw_str)?;
         Ok(Self {
-            imu_idx: i.imu_idx,
             timestamp_ns: i.timestamp_ns,
-            accel_msec2: Vector3::new(i.accel_msec2[0], i.accel_msec2[1], i.accel_msec2[2]),
-            gyro_radsec: Vector3::new(i.gyro_radsec[0], i.gyro_radsec[1], i.gyro_radsec[2]),
+            mag_tesla: Vector3::new(i.mag_tesla[0], i.mag_tesla[1], i.mag_tesla[2]),
         }
             )
     }

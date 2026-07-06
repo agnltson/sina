@@ -21,11 +21,9 @@ use apriltag_image::ImageExt;
 
 use crate::sensor_data::{
     SensorData,
-    ImuMessage,
+    MagMessage,
     ImageMessage,
 };
-
-const GRAVITY: f64 = 9.81;
 
 #[derive(Debug)]
 pub struct PosSys {

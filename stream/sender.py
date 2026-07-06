@@ -13,6 +13,7 @@ from projectaria_tools.core.calibration import (
     distort_by_calibration,
 )
 
+import numpy as np
 import zmq
 import json
 import cv2
@@ -39,15 +40,13 @@ class ZMQDataSender:
         with self._socket_lock:
             self.socket.send_string(json.dumps(msg))
 
-    def on_imu_received(self, samples, imu_idx):
-        s = samples[0]
+    def on_magneto_received(self, sample: MotionData) -> None:
         self.send({
-            "type": "imu",
-            "imu_idx": imu_idx,
-            "timestamp_ns": s.capture_timestamp_ns,
-            "accel_msec2": list(s.accel_msec2),
-            "gyro_radsec": list(s.gyro_radsec),
+            "type": "mag",
+            "timestamp_ns": sample.capture_timestamp_ns,
+            "mag_tesla": list(sample.mag_tesla),
         })
+        pass
 
     def on_image_received(self, image, record):
         if int(record.camera_id) != int(aria.CameraId.Rgb):
@@ -66,7 +65,7 @@ class ZMQDataSender:
                 time.sleep(0.001)
                 continue
 
-            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            rgb_image = cv2.cvtColor(np.rot90(image, -1), cv2.COLOR_BGR2RGB)
             ok, encoded = cv2.imencode(".jpg", rgb_image)
             if not ok:
                 continue
