@@ -1,5 +1,10 @@
 use std::sync::mpsc;
-use rerun::{RecordingStream, Color, Points2D};
+use rerun::{
+    RecordingStream,
+    Color,
+    Points2D,
+    Arrows2D,
+};
 
 use super::{
     navgraph::NavGraph,
@@ -11,36 +16,62 @@ pub struct Navigator {
     position: Option<Point>,
     heading: Option<Point>,
     navgraph: NavGraph,
-    video_path: Path,
+    path: Option<Path>,
+    path_idx: usize,
 }
 
 impl Navigator {
+    const REPLAN_THRESHOLD: f32 = 1.5;
+    const SEARCH_WINDOW: usize = 5;
+
     pub fn new(filepath: String) -> Self {
         Self {
             position: None,
             heading: None,
             navgraph: NavGraph::new(&filepath),
-            video_path: Path::from_closed_loop(&filepath),
+            path: None,
+            path_idx: 0,
         }
     }
 
-    pub fn compute_path(&self, start: (f64, f64), end: (f64, f64)) -> Option<Path> {
-        let point_path = self.navgraph.find_path(start.into(), end.into())?;
+    pub fn compute_path(&self, start: Point, end: Point) -> Option<Path> {
+        let point_path = self.navgraph.find_path(start, end)?;
         Some(Path::from_points(point_path))
     }
 
-    pub fn launch(&mut self, record: RecordingStream, pos_rx: mpsc::Receiver<(Point, Point)>) -> anyhow::Result<()> {
+    pub fn launch(&mut self, record: RecordingStream, pos_rx: mpsc::Receiver<(Point, Point)>, goal: (f64, f64)) -> anyhow::Result<()> {
         self.log_plan(&record, "navigator")?;
-        self.log_videopath(&record, "navigator")?;
+        let goal_point: Point = goal.into();
+
         loop {
             if let Ok((pos, head)) = pos_rx.recv() {
                 self.position = Some(pos);
                 self.heading = Some(head);
+
+
+                if self.need_replan(pos) {
+                    self.path = self.compute_path(pos, goal_point);
+                    self.path_idx = 0;
+                }
+
+                self.log_path(&record, "navigator")?;
                 self.log_position(&record, "navigator/position")?;
                 self.log_heading(&record, "navigator/position")?;
             }
         }
-        Ok(())
+    }
+
+    fn need_replan(&mut self, pos: Point) -> bool {
+        match &self.path {
+            None => true,
+            Some(path) => match path.closest_segment(pos, self.path_idx, Self::SEARCH_WINDOW) {
+                Some((idx, _t, dist)) => {
+                    self.path_idx = idx;
+                    dist > Self::REPLAN_THRESHOLD
+                }
+                None => true,
+            },
+        }
     }
 
     fn log_plan(&self, record: &RecordingStream, log_path: &str) -> anyhow::Result<()> {
@@ -51,11 +82,13 @@ impl Navigator {
         Ok(())
     }
 
-    fn log_videopath(&self, record: &RecordingStream, log_path: &str) -> anyhow::Result<()> {
-        self.video_path.log(
-            record,
-            format!("{}/video_path", log_path).as_str(),
-            )?;
+    fn log_path(&self, record: &RecordingStream, log_path: &str) -> anyhow::Result<()> {
+        if let Some(path) = &self.path {
+            path.log(
+                record,
+                format!("{}/path", log_path).as_str(),
+                )?;
+        }
         Ok(())
     }
 
@@ -84,22 +117,13 @@ impl Navigator {
         log_path: &str,
     ) -> anyhow::Result<()> {
         if let (Some(pos), Some(heading)) = (self.position, self.heading) {
-            let (px, py): (f64, f64) = pos.into();
-            let (hx, hy): (f64, f64) = heading.into();
-
-            let end_x = px + hx;
-            let end_y = py + hy;
-
             record.log(
                 format!("{}/heading", log_path).as_str(),
-                &rerun::LineStrips2D::new([[
-                    [px as f32, py as f32],
-                    [end_x as f32, end_y as f32],
-                ]])
-                .with_colors([Color::from_rgb(0, 255, 0)]),
+                &Arrows2D::from_vectors([[heading.x.into_inner(), heading.y.into_inner()]])
+                    .with_origins([[pos.x.into_inner(), pos.y.into_inner()]])
+                    .with_colors([Color::from_rgb(0, 255, 0)]),
             )?;
         }
-
         Ok(())
     }
 }

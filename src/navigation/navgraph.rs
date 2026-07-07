@@ -17,7 +17,7 @@ pub struct NavNode {
 #[derive(Debug)]
 pub struct NavEdge {
     pub to: usize,
-    pub cost: OrderedFloat<f32>,
+    pub cost: f32,
 }
 
 #[derive(Debug)]
@@ -94,17 +94,15 @@ impl NavGraph {
             }
 
             // stale check against f_score: recompute expected f for u
-            let h_u = (self.nodes[goal].centroid - self.nodes[u].centroid).length().into_inner();
+            let h_u = (self.nodes[goal].centroid - self.nodes[u].centroid).length();
             if f.into_inner() > g_score[u] + h_u + 1e-4 { continue; }
 
             for edge in &self.edges[u] {
-                let tentative_g = g_score[u] + edge.cost.into_inner();
+                let tentative_g = g_score[u] + edge.cost;
                 if tentative_g < g_score[edge.to] {
                     g_score[edge.to] = tentative_g;
                     prev[edge.to] = Some(u);
-                    let h = (self.nodes[goal].centroid - self.nodes[edge.to].centroid)
-                        .length()
-                        .into_inner();
+                    let h = (self.nodes[goal].centroid - self.nodes[edge.to].centroid).length();
                     heap.push(Reverse((OrderedFloat(tentative_g + h), edge.to)));
                 }
             }
@@ -212,7 +210,7 @@ impl NavGraph {
         self.nodes
             .iter()
             .enumerate()
-            .min_by_key(|(_, node)| (node.centroid - point).length())
+            .min_by_key(|(_, node)| OrderedFloat((node.centroid - point).length()))
             .map(|(i, _)| i)
     }
 

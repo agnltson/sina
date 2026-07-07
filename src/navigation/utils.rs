@@ -50,12 +50,12 @@ impl Point {
         }
     }
 
-    pub fn dot(self, other: Self) -> OrderedFloat<f32> {
-        self.x * other.x + self.y * other.y
+    pub fn dot(self, other: Self) -> f32 {
+        (self.x * other.x + self.y * other.y).into_inner()
     }
 
-    pub fn length(self) -> OrderedFloat<f32> {
-        OrderedFloat(self.dot(self).sqrt())
+    pub fn length(self) -> f32 {
+        self.dot(self).sqrt()
     }
 
     pub fn to_unit(self) -> Self {
@@ -64,6 +64,10 @@ impl Point {
             x: self.x / len,
             y: self.y / len,
         }
+    }
+
+    pub fn dist_to(self, other: Self) -> f32 {
+        (self - other).length()
     }
 }
 

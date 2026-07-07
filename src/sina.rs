@@ -30,14 +30,13 @@ impl Sina {
     pub fn launch(
         &mut self,
         semantic_path: String,
-        start: (f64, f64),
-        end: (f64, f64)
+        goal: (f64, f64)
         ) -> anyhow::Result<()> {
         let record: RecordingStream = RecordingStreamBuilder::new("SINA").spawn()?;
 
         let sensor_rx = Self::start_sensor_stream();
         let (sensor_tx, pos_rx) = Self::start_positioning_system(record.clone());
-        let point_tx = Self::start_navigator(record, semantic_path);
+        let point_tx = Self::start_navigator(record, semantic_path, goal);
 
         loop {
             if let Ok(sensor_data) = sensor_rx.try_recv() {
@@ -85,14 +84,18 @@ impl Sina {
         rx
     }
 
-    fn start_navigator(record: RecordingStream, semantic_path: String) -> mpsc::Sender<(navigation::Point, navigation::Point)> {
+    fn start_navigator(
+        record: RecordingStream,
+        semantic_path: String,
+        goal: (f64, f64)
+    ) -> mpsc::Sender<(navigation::Point, navigation::Point)> {
         let (tx, rx):
             (mpsc::Sender<(navigation::Point, navigation::Point)>, mpsc::Receiver<(navigation::Point, navigation::Point)>)
              = mpsc::channel();
 
         let _ = thread::Builder::new()
             .name("Navigator thread".to_string())
-            .spawn(move || navigation::Navigator::new(semantic_path).launch(record, rx).unwrap());
+            .spawn(move || navigation::Navigator::new(semantic_path).launch(record, rx, goal).unwrap());
         tx
     }
 }
