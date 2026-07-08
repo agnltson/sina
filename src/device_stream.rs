@@ -20,7 +20,7 @@ impl<'a> DeviceStream<'a> {
     pub fn launch(&self, sensor_data_tx: mpsc::Sender<SensorData>) -> anyhow::Result<()> {
         println!("Launching sensor data stream");
         let child = Command::new("python")
-            .arg("stream/device_stream.py")
+            .arg("python/stream/device_stream.py")
             .args(&self.stream_args)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
