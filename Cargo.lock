@@ -9830,6 +9830,7 @@ dependencies = [
  "apriltag-image",
  "apriltag-sys 0.4.0",
  "base64 0.22.1",
+ "clap",
  "crossbeam",
  "crossbeam-channel",
  "csv",
@@ -9843,6 +9844,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spade",
+ "toml 1.1.2+spec-1.1.0",
  "winnow 1.0.3",
  "zmq",
 ]
@@ -10501,10 +10503,12 @@ version = "1.1.2+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81f3d15e84cbcd896376e6730314d59fb5a87f31e4b038454184435cd57defee"
 dependencies = [
+ "indexmap",
  "serde_core",
  "serde_spanned 1.1.1",
  "toml_datetime 1.1.1+spec-1.1.0",
  "toml_parser",
+ "toml_writer",
  "winnow 1.0.3",
 ]
 
@@ -10559,6 +10563,12 @@ checksum = "a2abe9b86193656635d2411dc43050282ca48aa31c2451210f4202550afb7526"
 dependencies = [
  "winnow 1.0.3",
 ]
+
+[[package]]
+name = "toml_writer"
+version = "1.1.1+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "756daf9b1013ebe47a8776667b466417e2d4c5679d441c26230efd9ef78692db"
 
 [[package]]
 name = "tonic"
