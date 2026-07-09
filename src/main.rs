@@ -5,6 +5,7 @@ mod device_stream;
 mod sensor_data;
 mod pos_sys;
 mod sina;
+mod preprocessing;
 
 fn main() -> anyhow::Result<()> {
 
