@@ -6,12 +6,12 @@ use crate::sensor_data::{SensorData, MagMessage, ImageMessage};
 use zmq;
 use serde_json::Value;
 
-pub struct DeviceStream<'a> {
-    stream_args: Vec<&'a str>,
+pub struct DeviceStream {
+    stream_args: Vec<String>,
 }
 
-impl<'a> DeviceStream<'a> {
-    pub fn new(stream_args: Vec<&'a str>) -> Self {
+impl DeviceStream {
+    pub fn new(stream_args: Vec<String>) -> Self {
         Self {
             stream_args,
         }

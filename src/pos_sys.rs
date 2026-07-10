@@ -20,10 +20,15 @@ use apriltag::{
 use apriltag_image::ImageExt;
 
 
-use crate::sensor_data::{
-    SensorData,
-    MagMessage,
-    ImageMessage,
+use crate::{
+    sensor_data::{
+        SensorData,
+        MagMessage,
+        ImageMessage,
+    },
+    config::{
+        Config,
+    },
 };
 
 #[derive(Debug)]
@@ -35,7 +40,7 @@ pub struct PosSys {
 }
 
 impl PosSys {
-    pub fn new() -> Self {
+    pub fn new(config: Config) -> Self {
         let mut tag_world_poses = HashMap::new();
         tag_world_poses.insert(0, tag_pose_upright(
             Vector3::new(2.5, 0.0, 1.2),
@@ -48,7 +53,7 @@ impl PosSys {
         let (pose_tx, pose_rx) = mpsc::channel::<(Vector3<f64>, UnitQuaternion<f64>)>();
 
         thread::spawn(move || {
-            Self::start_worker(image_rx, pose_tx, &tag_world_poses);
+            Self::start_worker(&config, image_rx, pose_tx, &tag_world_poses);
         });
 
         Self {
@@ -60,12 +65,13 @@ impl PosSys {
     }
 
     fn start_worker(
+        config: &Config,
         image_rx: mpsc::Receiver<ImageMessage>,
         pose_tx: mpsc::Sender<(Vector3<f64>, UnitQuaternion<f64>)>,
         tag_world_poses: &HashMap<u32, Isometry3<f64>>
     ) {
-            let mut detector = build_detector();
-            let tag_params = tag_params();
+            let mut detector = build_detector(config);
+            let tag_params = tag_params(config);
 
             while let Ok(image) = image_rx.recv() {
                 if let Some(pose) = detect_pose(&mut detector, &tag_params, tag_world_poses, &image) {
@@ -155,25 +161,38 @@ fn detect_pose(
     None
 }
 
-const CAM_FX: f64 = 450.0;
-const CAM_FY: f64 = 450.0;
-const CAM_CX: f64 = 704.0; // PINHOLE_WIDTH / 2
-const CAM_CY: f64 = 704.0; // PINHOLE_HEIGHT / 2
-
-const TAG_SIZE_M: f64 = 0.16; // in meter
-
-pub fn tag_params() -> TagParams {
+pub fn tag_params(config: &Config) -> TagParams {
     TagParams {
-        tagsize: TAG_SIZE_M,
-        fx: CAM_FX,
-        fy: CAM_FY,
-        cx: CAM_CX,
-        cy: CAM_CY,
+        tagsize: config.apriltag.tag_size_m,
+        fx: config.streaming.fx,
+        fy: config.streaming.fy,
+        cx: config.streaming.cx,
+        cy: config.streaming.cy,
     }
 }
 
-pub fn build_detector() -> Detector {
-    let family = Family::tag_36h11();
+pub fn build_detector(config: &Config) -> Detector {
+    let family = match config.apriltag.tag_family.as_str() {
+        "tag_16h5" => Family::tag_16h5(),
+        "tag_25h9" => Family::tag_25h9(),
+        "tag_36h11" => Family::tag_36h11(),
+        "tag_circle_21h7" => Family::tag_circle_21h7(),
+        "tag_circle_49h12" => Family::tag_circle_49h12(),
+        "tag_custom_48h12" => Family::tag_custom_48h12(),
+        "tag_standard_41h12" => Family::tag_standard_41h12(),
+        "tag_standard_52h13" => Family::tag_standard_52h13(),
+        other => panic!("Unknow AprilTag family : {other}.\n
+            Available families are:\n
+            \t- tag_16h5\n
+            \t- tag_25h9\n
+            \t- tag_36h11\n
+            \t- tag_circle_21h7\n
+            \t- tag_circle_49h12\n
+            \t- tag_custom_48h12\n
+            \t- tag_standard_41h12\n
+            \t- tag_standard_52h13
+            "),
+    };
 
     let mut detector = DetectorBuilder::new()
         .add_family_bits(family, 1)

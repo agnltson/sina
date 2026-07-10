@@ -17,6 +17,7 @@ use crate::{
         SensorData,
     },
     pos_sys,
+    config::Config,
 };
 
 pub struct Sina {
@@ -29,13 +30,14 @@ impl Sina {
 
     pub fn launch(
         &mut self,
+        config: &Config,
         semantic_path: String,
         goal: (f64, f64)
         ) -> anyhow::Result<()> {
         let record: RecordingStream = RecordingStreamBuilder::new("SINA").spawn()?;
 
-        let sensor_rx = Self::start_sensor_stream();
-        let (sensor_tx, pos_rx) = Self::start_positioning_system(record.clone());
+        let sensor_rx = Self::start_sensor_stream(config.clone());
+        let (sensor_tx, pos_rx) = Self::start_positioning_system(config.clone(), record.clone());
         let point_tx = Self::start_navigator(record, semantic_path, goal);
 
         loop {
@@ -52,7 +54,10 @@ impl Sina {
         Ok(())
     }
 
-    fn start_positioning_system(record: RecordingStream) -> (mpsc::Sender<SensorData>, mpsc::Receiver<(Vector3<f64>, UnitQuaternion<f64>)>) {
+    fn start_positioning_system(
+        config: Config,
+        record: RecordingStream
+    ) -> (mpsc::Sender<SensorData>, mpsc::Receiver<(Vector3<f64>, UnitQuaternion<f64>)>) {
         let (sensor_tx, sensor_rx): (mpsc::Sender<SensorData>, mpsc::Receiver<SensorData>) = mpsc::channel();
         let (position_tx, position_rx):
             (mpsc::Sender<(Vector3<f64>, UnitQuaternion<f64>)>, mpsc::Receiver<(Vector3<f64>, UnitQuaternion<f64>)>)
@@ -60,21 +65,21 @@ impl Sina {
 
         let _ = thread::Builder::new()
             .name("Positioning system thread".to_string())
-            .spawn(move || pos_sys::PosSys::new().launch(record, sensor_rx, position_tx).unwrap());
+            .spawn(move || pos_sys::PosSys::new(config).launch(record, sensor_rx, position_tx).unwrap());
 
         (sensor_tx, position_rx)
     }
 
-    fn start_sensor_stream() -> mpsc::Receiver<SensorData> {
+    fn start_sensor_stream(config: Config) -> mpsc::Receiver<SensorData> {
         let (tx, rx): (mpsc::Sender<SensorData>, mpsc::Receiver<SensorData>) = mpsc::channel();
 
         let stream_args = vec![
-            "--interface",
-            "wifi",
-            "--device-ip",
-            "10.69.83.218",
-            "--profile",
-            "profile12",
+            "--interface".to_string(),
+            "wifi".to_string(),
+            "--device-ip".to_string(),
+            config.streaming.ip.clone(),
+            "--profile".to_string(),
+            config.streaming.profile.clone(),
         ];
 
         let _ = thread::Builder::new()
