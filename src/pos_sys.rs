@@ -23,7 +23,6 @@ use apriltag_image::ImageExt;
 use crate::{
     sensor_data::{
         SensorData,
-        MagMessage,
         ImageMessage,
     },
     config::{

@@ -5,53 +5,7 @@ use nalgebra::Vector3;
 use std::cmp::Ordering;
 
 pub enum SensorData {
-    Mag(MagMessage),
     Image(ImageMessage),
-}
-
-#[derive(Debug, Deserialize)]
-pub struct RawMagMessage {
-    #[serde(rename = "type")]
-    pub _msg_type: String,
-    pub timestamp_ns: u64,
-    pub mag_tesla: [f64; 3],
-}
-
-#[derive(Debug, Clone)]
-pub struct MagMessage {
-    pub timestamp_ns: u64,
-    pub mag_tesla: Vector3<f64>,
-}
-
-impl Eq for MagMessage {}
-
-impl PartialEq for MagMessage {
-    fn eq(&self, other: &Self) -> bool {
-        self.timestamp_ns.eq(&other.timestamp_ns)
-    }
-}
-
-impl Ord for MagMessage {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.timestamp_ns.cmp(&other.timestamp_ns).reverse()
-    }
-}
-
-impl PartialOrd for MagMessage {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl MagMessage {
-    pub fn from_json(raw_str: &String) -> anyhow::Result<Self> {
-        let i: RawMagMessage = serde_json::from_str(&raw_str)?;
-        Ok(Self {
-            timestamp_ns: i.timestamp_ns,
-            mag_tesla: Vector3::new(i.mag_tesla[0], i.mag_tesla[1], i.mag_tesla[2]),
-        }
-            )
-    }
 }
 
 #[derive(Debug, Deserialize)]
