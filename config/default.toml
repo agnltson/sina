@@ -3,6 +3,7 @@ skip_factor = 2 # Optional: skip half the input video frame (default: 2)
 num_workers = 4 # Optional: thread used (default: available logical core)
 queue_capacity = 32 # Optional: internal decoded queue capacity (default: 32)
 min_observation = 5 # Optional: number of frame a tag must appear to be consider valid (default: 5)
+max_hamming = 1 # Option: error tolerance
 
 # Recording camera intrinsic
 fx = 450.0

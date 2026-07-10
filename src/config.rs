@@ -31,6 +31,7 @@ pub struct PreprocessorConfig {
     pub num_workers: Option<usize>,
     pub queue_capacity: Option<usize>,
     pub min_observation: Option<usize>,
+    pub max_hamming: Option<usize>,
     pub fx: f64,
     pub fy: f64,
     pub cx: f64,

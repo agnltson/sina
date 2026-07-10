@@ -3,7 +3,7 @@ use std::{
     thread,
 };
 use std::collections::HashMap;
-use rerun::{RecordingStream, EncodedImage};
+use rerun::RecordingStream;
 use nalgebra::{
     Vector3,
     UnitQuaternion,
