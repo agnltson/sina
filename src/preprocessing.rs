@@ -1,4 +1,3 @@
-mod detector;
 mod pose;
 mod decoder;
 mod worker;
