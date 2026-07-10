@@ -6,7 +6,6 @@ mod pos_sys;
 mod sina;
 mod preprocessing;
 
-use std::env;
 use clap::Parser;
 
 #[derive(Parser, Debug)]

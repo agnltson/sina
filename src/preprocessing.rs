@@ -71,16 +71,21 @@ pub fn preprocess(config: &Config, data_path: String) -> anyhow::Result<()> {
         let tag_family_str = config.apriltag.tag_family.clone();
         let max_hamming = config.preprocessor.max_hamming.unwrap_or(DEFAULT_MAX_HAMMING);
 
-        worker_handles.push(thread::spawn(move || {
-            worker::worker_loop(
-                rx,
-                &csv_poses,
-                &frame_timestamps_us,
-                camera,
-                &tag_family_str,
-                max_hamming,
-            )
-        }));
+        worker_handles.push(
+            thread::Builder::new()
+                .name(
+                    format!("worker {}", worker_id).to_string())
+                .spawn(move || {
+                    worker::worker_loop(
+                        rx,
+                        &csv_poses,
+                        &frame_timestamps_us,
+                        camera,
+                        &tag_family_str,
+                        max_hamming,
+                    )
+                })?
+        );
     }
 
     drop(rx);

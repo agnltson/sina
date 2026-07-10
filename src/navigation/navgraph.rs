@@ -154,7 +154,7 @@ impl NavGraph {
         let mut apex = start;
         let mut left = portals[0].0;
         let mut right = portals[0].1;
-        let (mut apex_idx, mut left_idx, mut right_idx) = (0usize, 0usize, 0usize);
+        let (mut left_idx, mut right_idx) = (0usize, 0usize);
 
         let mut i = 1;
         while i < portals.len() {
@@ -167,12 +167,10 @@ impl NavGraph {
                 } else {
                     result.push(left);
                     apex = left;
-                    apex_idx = left_idx;
                     left = apex;
                     right = apex;
-                    left_idx = apex_idx;
-                    right_idx = apex_idx;
-                    i = apex_idx + 1;
+                    right_idx = left_idx;
+                    i = left_idx + 1;
                     continue;
                 }
             }
@@ -184,12 +182,10 @@ impl NavGraph {
                 } else {
                     result.push(right);
                     apex = right;
-                    apex_idx = right_idx;
                     left = apex;
                     right = apex;
-                    left_idx = apex_idx;
-                    right_idx = apex_idx;
-                    i = apex_idx + 1;
+                    left_idx = right_idx;
+                    i = right_idx + 1;
                     continue;
                 }
             }

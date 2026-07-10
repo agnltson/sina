@@ -7,7 +7,6 @@ use super::pose::{interpolate_pose, PoseSample};
 
 #[derive(Debug, Clone)]
 pub struct TagObservation {
-    pub frame_index: usize,
     pub tag_id: usize,
     pub translation_world: [f64; 3],
     pub quaternion_world_wxyz: [f64; 4],
@@ -52,7 +51,7 @@ pub fn worker_loop(
     for frame in rx.iter() {
         let mut image = match Image::zeros_with_stride(frame.width, frame.height, frame.stride) {
             Ok(img) => img,
-            Err(e) => continue,
+            Err(_) => continue,
         };
         if image.as_slice().len() != frame.gray_data.len() {
             continue;
@@ -105,7 +104,6 @@ pub fn worker_loop(
 
             let q = world_tag.rotation.quaternion();
             observations.push(TagObservation {
-                frame_index: frame.frame_index,
                 tag_id: detection.id(),
                 translation_world: [
                     world_tag.translation.x,

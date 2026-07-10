@@ -1,7 +1,6 @@
 use std::{
     thread,
     sync::mpsc,
-    collections::HashMap,
 };
 use rerun::{RecordingStream, RecordingStreamBuilder};
 use nalgebra::{
@@ -42,12 +41,16 @@ impl Sina {
 
         loop {
             if let Ok(sensor_data) = sensor_rx.try_recv() {
-                sensor_tx.send(sensor_data)?;
+                if sensor_tx.send(sensor_data).is_err() {
+                    break;
+                }
             }
             if let Ok((pos3, orient4)) = pos_rx.try_recv() {
                 let pos_point: navigation::Point = (pos3.x, pos3.y).into();
                 let heading = camera_heading_xy(&orient4);
-                point_tx.send((pos_point, heading))?;
+                if point_tx.send((pos_point, heading)).is_err() {
+                    break;
+                }
             }
         }
 

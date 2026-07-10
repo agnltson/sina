@@ -91,7 +91,6 @@ impl PosSys {
                     self.log_image(&record, "camera", image.jpeg.clone())?;
                     let _ = self.image_tx.try_send(image);
                 }
-                Ok(_) => {}
                 Err(_) => break,
             }
 

@@ -45,7 +45,7 @@ impl From<&RoomCDT> for Vec<Polygon> {
                     y: OrderedFloat(p.y),
                 }
             }).to_vec();
-            Polygon { vertices }
+            Polygon::new(vertices)
         }).collect()
     }
 }

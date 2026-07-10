@@ -22,14 +22,12 @@ impl Edge {
 }
 
 pub struct RoomGraph {
-    pub nodes: HashMap<i64, Point>,
     pub edges: Vec<Edge>,
 }
 
 impl RoomGraph {
-    pub fn new(nodes: HashMap<i64, Point>, edges: Vec<Edge>) -> Self {
+    pub fn new(edges: Vec<Edge>) -> Self {
         Self {
-            nodes,
             edges,
         }
     }
@@ -40,7 +38,6 @@ impl From<&Data> for RoomGraph {
         let mut node_id = 0;
 
         let mut edges: Vec<Edge> = Vec::new();
-        let mut id_to_point = HashMap::new();
         let mut point_to_id = HashMap::new();
 
         let walls = data.walls.clone();
@@ -49,12 +46,10 @@ impl From<&Data> for RoomGraph {
 
             // No dup points
             if !point_to_id.contains_key(&start) {
-                id_to_point.insert(node_id, start);
                 point_to_id.insert(start, node_id);
                 node_id += 1;
             }
             if !point_to_id.contains_key(&end) {
-                id_to_point.insert(node_id, end);
                 point_to_id.insert(end, node_id);
                 node_id += 1;
             }
@@ -79,7 +74,7 @@ impl From<&Data> for RoomGraph {
             }
         }
 
-        RoomGraph::new(id_to_point, edges)
+        RoomGraph::new(edges)
     }
 }
 

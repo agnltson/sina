@@ -140,12 +140,10 @@ pub struct Polygon {
 }
 
 impl Polygon {
-    fn new(vertices: Vec<Point>) -> Self {
+    pub fn new(vertices: Vec<Point>) -> Self {
         Self { vertices }
     }
-}
 
-impl Polygon {
     pub fn contains(&self, point: Point) -> bool {
         let n = self.vertices.len();
         let mut inside = false;

@@ -1,10 +1,3 @@
-use std::{
-    fs::File,
-    io::{
-        BufRead,
-        BufReader,
-    }
-};
 use rerun::{Points2D, LineStrips2D, RecordingStream, Color};
 use ordered_float::OrderedFloat;
 use super::Point;
@@ -19,38 +12,6 @@ impl Path {
         Self {
             pos: points,
         }
-    }
-
-    pub fn from_closed_loop(filepath: &str) -> Self {
-        let source_name = "trajectory.csv";
-        let full_path = format!("{}/{}", filepath, source_name);
-
-        let file = File::open(&full_path)
-            .unwrap_or_else(|e| panic!("Unable to open {}: {}", full_path, e));
-        let reader = BufReader::new(file);
-
-        let mut pos = Vec::new();
-
-        for (i, line) in reader.lines().enumerate() {
-            let line = line.unwrap_or_else(|e| panic!("Reading error line {}: {}", i, e));
-
-            if i == 0 {
-                continue;
-            }
-
-            let fields: Vec<&str> = line.split(',').collect();
-
-            let x: f64 = fields[3]
-                .parse()
-                .unwrap_or_else(|e| panic!("Error while parsing x line {}: {}", i, e));
-            let y: f64 = fields[4]
-                .parse()
-                .unwrap_or_else(|e| panic!("Error while parsing y line {}: {}", i, e));
-
-            pos.push((x, y).into());
-        }
-
-        Path { pos }
     }
 
     fn project_on_segment(pos: Point, a: Point, b: Point) -> (Point, f32) {
@@ -86,28 +47,6 @@ impl Path {
                 (i, t, pos.dist_to(proj))
             })
             .min_by(|a, b| a.2.partial_cmp(&b.2).unwrap())
-    }
-
-    pub fn lookahead_target(&self, idx: usize, t: f32, lookahead: f32) -> Point {
-        let seg_len = self.pos[idx].dist_to(self.pos[idx + 1]);
-        let mut remaining = lookahead - (1.0 - t) * seg_len;
-        let mut i = idx + 1;
-
-        while remaining > 0.0 && i + 1 < self.pos.len() {
-            let d = self.pos[i].dist_to(self.pos[i + 1]);
-            if d >= remaining {
-                let ratio = OrderedFloat(remaining / d);
-                let ab = self.pos[i + 1] - self.pos[i];
-                return Point {
-                    x: self.pos[i].x + ratio * ab.x,
-                    y: self.pos[i].y + ratio * ab.y,
-                };
-            }
-            remaining -= d;
-            i += 1;
-        }
-
-        *self.pos.last().unwrap()
     }
 
     pub fn log(
