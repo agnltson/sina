@@ -2,20 +2,20 @@ use std::fs;
 use std::path::Path;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub preprocessor: PreprocessorConfig,
     pub streaming: StreamingConfig,
-    pub apritag: ApriltagConfig,
+    pub apriltag: ApriltagConfig,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ApriltagConfig {
     pub tag_family: String,
     pub tag_size_m: f64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct StreamingConfig {
     pub profile: String,
     pub ip: String,
@@ -25,7 +25,7 @@ pub struct StreamingConfig {
     pub cy: f64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PreprocessorConfig {
     pub skip_factor: Option<usize>,
     pub num_workers: Option<usize>,
@@ -37,7 +37,7 @@ pub struct PreprocessorConfig {
     pub cy: f64,
 }
 
-pub fn load_config<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn std::error::Error>> {
+pub fn load_config<P: AsRef<Path>>(path: P) -> anyhow::Result<Config> {
     let contents = fs::read_to_string(path)?;
     let config: Config = toml::from_str(&contents)?;
     Ok(config)
