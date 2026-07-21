@@ -144,7 +144,6 @@ impl From<RawData> for Data {
             .map(|w| w.start.z.max(w.end.z))
             .min()
             .unwrap_or(OrderedFloat(0.0));
-        println!("highest_wall_base: {}", highest_wall_base);
 
         let bboxes: Vec<BBox> = raw_data.bboxes
             .iter()

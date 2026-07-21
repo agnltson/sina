@@ -26,7 +26,7 @@ nalgebra = "0.35.0"
 num_cpus = "1.17.0"
 ordered-float = "5.3.0"
 rerun = "0.33.0"
-serde = "1.0.228"
+serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 spade = "2.15.1"
 toml = "1.1.2"

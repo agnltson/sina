@@ -44,21 +44,28 @@ impl Navigator {
         let goal_point: Point = goal.into();
 
         loop {
-            if let Ok((pos, head)) = pos_rx.recv() {
-                self.position = Some(pos);
-                self.heading = Some(head);
+            match pos_rx.recv() {
+                Ok((pos, head)) => {
+                    self.position = Some(pos);
+                    self.heading = Some(head);
 
 
-                if self.need_replan(pos) {
-                    self.path = self.compute_path(pos, goal_point);
-                    self.path_idx = 0;
+                    if self.need_replan(pos) {
+                        self.path = self.compute_path(pos, goal_point);
+                        self.path_idx = 0;
+                    }
+
+                    self.log_path(&record, "navigator")?;
+                    self.log_position(&record, "navigator/position")?;
+                    self.log_heading(&record, "navigator/position")?;
+                },
+                Err(_) => {
+                    eprintln!("[Navigator] channel de position fermé, arrêt.");
+                    break;
                 }
-
-                self.log_path(&record, "navigator")?;
-                self.log_position(&record, "navigator/position")?;
-                self.log_heading(&record, "navigator/position")?;
             }
         }
+        Ok(())
     }
 
     fn need_replan(&mut self, pos: Point) -> bool {

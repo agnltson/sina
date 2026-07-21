@@ -40,14 +40,6 @@ class ZMQDataSender:
         with self._socket_lock:
             self.socket.send_string(json.dumps(msg))
 
-    def on_magneto_received(self, sample: MotionData) -> None:
-        self.send({
-            "type": "mag",
-            "timestamp_ns": sample.capture_timestamp_ns,
-            "mag_tesla": list(sample.mag_tesla),
-        })
-        pass
-
     def on_image_received(self, image, record):
         if int(record.camera_id) != int(aria.CameraId.Rgb):
             return

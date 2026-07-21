@@ -31,7 +31,7 @@ pub struct NavGraph {
 
 impl NavGraph {
     pub fn new(filepath: &str) -> Self {
-        let file_name = "/ase_scene_language.txt";
+        let file_name = "/semantic.txt";
         let mut file = fs::File::open(String::from(filepath) + file_name)
             .unwrap_or_else( |e| { eprintln!("{}: '{}'", e, String::from(filepath) + file_name); process::exit(1) });
         let mut contents = String::new();
