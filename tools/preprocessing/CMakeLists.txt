@@ -33,7 +33,18 @@ add_compile_definitions(
 # alone (the previous version of this file) never tells the linker which
 # specific .a files to pull in, which is exactly why every symbol came
 # back as an undefined reference.
-set(ARIA_ROOT "/home/knette/projectaria_tools")
+if(NOT DEFINED ARIA_ROOT)
+    message(FATAL_ERROR "You must specify ARIA_ROOT: cmake -DARIA_ROOT=/path/to/projectaria_tools ..")
+endif()
+
+if(NOT EXISTS ${ARIA_ROOT})
+    message(FATAL_ERROR "projectaria_tools not found at: ${ARIA_ROOT}")
+endif()
+
+message(STATUS "Using projectaria_tools from: ${ARIA_ROOT}")
+
+set(FETCHCONTENT_BASE_DIR ${ARIA_ROOT}/build/_deps CACHE PATH "" FORCE)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
 
 # Your existing ${ARIA_ROOT}/build already has Eigen/Sophus/Ocean/Dispenso
 # etc. downloaded via FetchContent. Pointing FETCHCONTENT_BASE_DIR at that
