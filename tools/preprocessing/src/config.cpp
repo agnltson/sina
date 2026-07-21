@@ -33,8 +33,6 @@ std::string require_string(const toml::table& t, std::string_view key) {
     return *v;
 }
 
-// TOML integers are always signed 64-bit; we just narrow to size_t since
-// all the Option<usize> fields in the Rust struct are non-negative counts.
 std::optional<size_t> optional_size(const toml::table& t, std::string_view key) {
     auto v = t[key].value<int64_t>();
     if (!v) {

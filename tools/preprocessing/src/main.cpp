@@ -5,8 +5,6 @@
 #include "preprocessing.hpp"
 
 int main(int argc, char** argv) {
-    // argv[0] is the program name, so 3 real arguments means argc == 4 --
-    // the original `argc != 3` check would reject every valid invocation.
     if (argc != 4) {
         std::cerr << "usage: " << argv[0] << " <config_path> <vrs_path> <trajectory_path>\n";
         return 1;

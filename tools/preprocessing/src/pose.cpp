@@ -10,10 +10,6 @@ namespace preprocessing {
 
 namespace {
 
-// Plain comma split, no quoting support. Good enough for this CSV, which
-// (like the Rust version via the `csv` crate with default settings) never
-// has quoted fields in practice; note this as a known limitation if that
-// ever changes.
 std::vector<std::string> split_csv_line(const std::string& line) {
     std::vector<std::string> fields;
     std::stringstream ss(line);
@@ -67,9 +63,6 @@ std::vector<PoseSample> load_poses(const std::string& path) {
         double qz = std::stod(column(fields, "qz_world_device"));
         double qw = std::stod(column(fields, "qw_world_device"));
 
-        // Eigen::Quaterniond's constructor takes (w, x, y, z), same order
-        // nalgebra::Quaternion::new used in the Rust version. .normalized()
-        // mirrors what UnitQuaternion::from_quaternion did implicitly.
         Eigen::Isometry3d isometry = Eigen::Isometry3d::Identity();
         isometry.translate(Eigen::Vector3d(tx, ty, tz));
         isometry.rotate(Eigen::Quaterniond(qw, qx, qy, qz).normalized());
@@ -86,10 +79,6 @@ std::vector<PoseSample> load_poses(const std::string& path) {
 
 std::optional<Eigen::Isometry3d> interpolate_pose(
     const std::vector<PoseSample>& poses, int64_t target_us) {
-    // Rust's binary_search_by_key returns Ok(idx) on an exact match or
-    // Err(idx) with the insertion point otherwise. std::lower_bound gives
-    // us the insertion point directly; we then check for an exact match
-    // ourselves to cover the Ok(idx) case.
     auto it = std::lower_bound(
         poses.begin(), poses.end(), target_us,
         [](const PoseSample& sample, int64_t t) { return sample.timestamp_us < t; });

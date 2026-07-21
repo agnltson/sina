@@ -17,8 +17,6 @@ namespace preprocessing {
 AriaReader::AriaReader(const std::string& vrs_path) {
     using namespace projectaria::tools;
 
-    // createVrsDataProvider returns a plain (possibly null) shared_ptr, not
-    // an optional -- check against nullptr, not .has_value().
     provider_ = data_provider::createVrsDataProvider(vrs_path);
     if (!provider_) {
         throw std::runtime_error("cannot open VRS file: " + vrs_path);
@@ -42,25 +40,11 @@ AriaReader::AriaReader(const std::string& vrs_path) {
     }
     camera_calib_ = *camera_calib;
 
-    // This is the device_camera transform that was missing before: the
-    // physical rigid transform from the RGB camera frame to the device
-    // frame, straight from the VRS calibration blob. Sophus::SE3d doesn't
-    // interoperate directly with Eigen::Isometry3d, so we copy its
-    // rotation matrix + translation into one ourselves.
     const Sophus::SE3d& t_device_camera = camera_calib_.getT_Device_Camera();
     T_device_camera_ = Eigen::Isometry3d::Identity();
     T_device_camera_.linear() = t_device_camera.rotationMatrix();
     T_device_camera_.translation() = t_device_camera.translation();
 
-    std::cout << "\n=== T_DEVICE_CAMERA ===\n";
-    std::cout << T_device_camera_.matrix() << "\n";
-
-    // read_and_send() undistorts every frame to a plain pinhole model at
-    // the camera's native resolution before pushing it onto the queue, so
-    // AprilTag pose estimation never has to deal with the RGB camera's
-    // native fisheye distortion. T_Device_Camera is carried over unchanged
-    // since undistortion only changes the projection model, not where the
-    // camera physically sits on the device.
     Eigen::Vector2i image_size = camera_calib_.getImageSize();
     double focal_length = camera_calib_.getFocalLengths().mean();
     pinhole_calib_ = calibration::getLinearCameraCalibration(
@@ -83,7 +67,6 @@ void AriaReader::read_and_send(BoundedQueue<DecodedFrame>& queue, size_t skip_fa
     size_t num_frames = provider_->getNumData(rgb_stream_);
 
     for (size_t i = 0; i < num_frames; i += skip_factor) {
-        //std::cout << "Sending frame " << i << std::endl;
         auto image_data_and_record = provider_->getImageDataByIndex(rgb_stream_, static_cast<int>(i));
         const data_provider::ImageData& image_data = image_data_and_record.first;
         const data_provider::ImageDataRecord& record = image_data_and_record.second;
@@ -94,12 +77,6 @@ void AriaReader::read_and_send(BoundedQueue<DecodedFrame>& queue, size_t skip_fa
             continue;
         }
 
-        // Depending on the recording's capture profile, "camera-rgb" is
-        // either raw single-channel Bayer-mosaic (RGGB) data that must be
-        // debayered before any resampling (resampling the raw mosaic
-        // directly would produce garbage colors), or already demosaiced
-        // RGB delivered straight by the player. Handle both rather than
-        // assuming one.
         image::ManagedImage3U8 debayered; // only populated in the raw-Bayer branch
         image::ImageVariant rgb_variant;
         if (std::holds_alternative<image::ImageU8>(*variant)) {
@@ -120,9 +97,6 @@ void AriaReader::read_and_send(BoundedQueue<DecodedFrame>& queue, size_t skip_fa
         size_t width = undistorted.width();
         size_t height = undistorted.height();
 
-        // AprilTag only needs a single grayscale channel; pack it tightly
-        // (stride == width) so worker.cpp can wrap it as an apriltag
-        // image_u8_t with no further copying.
         std::vector<uint8_t> gray_data(width * height);
         for (size_t y = 0; y < height; ++y) {
             for (size_t x = 0; x < width; ++x) {
