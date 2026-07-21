@@ -1,7 +1,7 @@
 [preprocessor]
-skip_factor = 10 # Optional: skip half the input video frame (default: 2)
-num_workers = 2 # Optional: thread used (default: available logical core)
-queue_capacity = 256 # Optional: internal decoded queue capacity (default: 32)
+skip_factor = 2 # Optional: skip half the input video frame (default: 2)
+num_workers = 2 # Optional: thread used (default: 2)
+queue_capacity = 8 # Optional: internal decoded queue capacity (default: 8)
 min_observation = 5 # Optional: number of frame a tag must appear to be consider valid (default: 5)
 max_hamming = 1 # Option: error tolerance
 
