@@ -26,18 +26,6 @@ struct CameraParams {
     double tag_size_m;
 };
 
-// Pulls frames off queue until it's closed and drained, runs AprilTag
-// detection + pose estimation on each one, and returns every observation
-// found. Meant to run on its own std::thread -- one call per worker,
-// mirroring worker_loop() in the Rust version. Throws std::runtime_error
-// if tag_family_str isn't a known family name.
-//
-// T_device_camera is the rigid transform from the RGB camera frame to the
-// device frame (from AriaReader::T_device_camera()): tag poses come out of
-// AprilTag in the *camera* frame, but csv_poses holds world_device poses,
-// so composing world_tag = world_device * cam_tag directly (without going
-// through the camera's mounting offset first) was producing wrong
-// positions.
 std::vector<TagObservation> worker_loop(
     BoundedQueue<DecodedFrame>& queue,
     const std::vector<PoseSample>& csv_poses,

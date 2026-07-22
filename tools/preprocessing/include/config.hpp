@@ -6,8 +6,6 @@
 
 namespace preprocessing {
 
-// Mirrors PreprocessorConfig in the Rust config.rs. Optional fields use
-// std::optional the same way Rust used Option<T>.
 struct PreprocessorConfig {
     std::optional<size_t> skip_factor;
     std::optional<size_t> num_workers;
@@ -40,10 +38,6 @@ struct Config {
     ApriltagConfig apriltag;
 };
 
-// Parses a TOML file with [preprocessor]/[streaming]/[apriltag] tables into
-// a Config, mirroring load_config() in the Rust version. Throws
-// std::runtime_error if a required key is missing or has the wrong type,
-// or toml::parse_error (itself a std::runtime_error) on a syntax error.
 Config load_config(const std::string& path);
 
 } // namespace preprocessing

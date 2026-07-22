@@ -9,23 +9,14 @@
 
 namespace preprocessing {
 
-// One already-undistorted, grayscale RGB camera frame, ready for AprilTag
-// detection. timestamp_ns comes straight from the VRS record -- no more
-// separate mp4_to_vrs_time_ns.json lookup table needed, since the SDK
-// hands us the real capture timestamp per frame.
 struct DecodedFrame {
     size_t frame_index;
     int64_t timestamp_ns;
     size_t width;
     size_t height;
-    // Tightly packed: row length == width, no per-row padding.
     std::vector<uint8_t> gray_data;
 };
 
-// A small blocking bounded queue -- the hand-rolled equivalent of a
-// crossbeam bounded channel. push() blocks while full; pop() blocks while
-// empty. Once close() has been called, pop() drains whatever is left and
-// then starts returning false.
 template <typename T>
 class BoundedQueue {
 public:
