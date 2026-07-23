@@ -314,9 +314,6 @@ pub fn tag_params(config: &Config) -> TagParams {
 }
 
 pub fn build_detector(config: &Config) -> Detector {
-    // La liste de familles supportées est vérifiée ici (message d'erreur clair
-    // si mal configuré) ; la création réelle est déléguée à shim.c, qui
-    // connaît le mapping nom -> fonction *_create() de la lib C.
     match config.apriltag.tag_family.as_str() {
         "tag16h5" | "tag25h9" | "tag36h11" | "tagcircle21h7" | "tagcircle49h12"
         | "tagcustom48h12" | "tagstandard41h12" | "tagstandard52h13" => {}
@@ -336,9 +333,9 @@ pub fn build_detector(config: &Config) -> Detector {
     Detector::new(
         &config.apriltag.tag_family,
         num_cpus::get() as u8,
-        2.0,  // quad_decimate, identique au comportement précédent (set_decimation(2.0))
-        0.0,  // quad_sigma, jamais réglé avant -> valeur par défaut de la lib C
-        true, // refine_edges, identique au comportement précédent
+        2.0,
+        0.0,
+        true,
     )
     .expect("AprilTag Detector build failed")
 }
