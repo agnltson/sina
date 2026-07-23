@@ -25,10 +25,13 @@ impl Navigator {
     const SEARCH_WINDOW: usize = 5;
 
     pub fn new(filepath: String) -> Self {
+        let navgraph = NavGraph::new(&filepath);
+        let node_positions = navgraph.get_node_positions();
+
         Self {
             position: None,
             heading: None,
-            navgraph: NavGraph::new(&filepath),
+            navgraph,
             path: None,
             path_idx: 0,
         }
@@ -39,9 +42,14 @@ impl Navigator {
         Some(Path::from_points(point_path))
     }
 
-    pub fn launch(&mut self, record: RecordingStream, pos_rx: mpsc::Receiver<(Point, Point)>, goal: (f64, f64)) -> anyhow::Result<()> {
+    pub fn launch(
+        &mut self,
+        record: RecordingStream,
+        pos_rx: mpsc::Receiver<(Point, Point)>,
+    ) -> anyhow::Result<()> {
         self.log_plan(&record, "navigator")?;
-        let goal_point: Point = goal.into();
+
+        let mut goal_point: Option<Point> = None;
 
         loop {
             match pos_rx.recv() {
@@ -49,10 +57,18 @@ impl Navigator {
                     self.position = Some(pos);
                     self.heading = Some(head);
 
+                    if let Some(goal) = goal_point {
+                        if self.path.is_none() {
+                            self.path = self.compute_path(pos, goal);
+                            self.path_idx = 0;
+                        }
+                    }
 
-                    if self.need_replan(pos) {
-                        self.path = self.compute_path(pos, goal_point);
-                        self.path_idx = 0;
+                    if goal_point.is_some() && self.need_replan(pos) {
+                        if let Some(goal) = goal_point {
+                            self.path = self.compute_path(pos, goal);
+                            self.path_idx = 0;
+                        }
                     }
 
                     self.log_path(&record, "navigator")?;
@@ -60,7 +76,7 @@ impl Navigator {
                     self.log_heading(&record, "navigator/position")?;
                 },
                 Err(_) => {
-                    eprintln!("[Navigator] channel de position fermé, arrêt.");
+                    eprintln!("[Navigator] position channel closed, shutting down.");
                     break;
                 }
             }

@@ -110,7 +110,6 @@ impl NavGraph {
         None
     }
 
-
     fn shared_edge(&self, from_idx: usize, to_idx: usize) -> Option<(Point, Point)> {
         let from_poly = &self.navmesh.polygons[from_idx];
         let to_poly = &self.navmesh.polygons[to_idx];
@@ -195,6 +194,13 @@ impl NavGraph {
 
         result.push(goal);
         result
+    }
+
+    pub fn get_node_positions(&self) -> Vec<Point> {
+        self.nodes
+            .iter()
+            .map(|node| node.centroid)
+            .collect()
     }
 
     pub fn nearest_centroid(&self, point: Point) -> Option<usize> {

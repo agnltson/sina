@@ -33,48 +33,64 @@ impl Sina {
         &mut self,
         config: &Config,
         data_path: String,
-        goal: (f64, f64)
         ) -> anyhow::Result<()> {
         let record: RecordingStream = RecordingStreamBuilder::new("SINA").spawn()?;
 
         let sensor_rx = Self::start_sensor_stream(config.clone());
         let (sensor_tx, pos_rx) = Self::start_positioning_system(config.clone(), record.clone(), data_path.clone());
-        let point_tx = Self::start_navigator(record, data_path, goal);
+        let pos_tx = Self::start_navigator(record, data_path);
 
+        Self::start_data_bridge(sensor_rx, sensor_tx, pos_rx, pos_tx);
         loop {
-            match sensor_rx.try_recv() {
-                Ok(sensor_data) => {
-                    if sensor_tx.send(sensor_data).is_err() {
-                        eprintln!("[Sina] positioning system closed (sensor_tx), shutting down.");
-                        break;
-                    }
-                }
-                Err(TryRecvError::Disconnected) => {
-                    eprintln!("[Sina] sensor stream closeds, shutting down.");
-                    break;
-                }
-                Err(TryRecvError::Empty) => {}
-            }
-
-            match pos_rx.try_recv() {
-                Ok((pos3, orient4)) => {
-                    let pos_point: navigation::Point = (pos3.x, pos3.y).into();
-                    let heading = camera_heading_xy(&orient4);
-                    if point_tx.send((pos_point, heading)).is_err() {
-                        eprintln!("[Sina] navigator closed (point_tx), shutting down.");
-                        break;
-                    }
-                }
-                Err(TryRecvError::Disconnected) => {
-                    eprintln!("[Sina] positioning system closed, shutting down.");
-                    break;
-                }
-                Err(TryRecvError::Empty) => {}
-            }
+            // launch rendering app and mouseclick callback
         }
-        eprintln!("[Sina] main loop stopped, end of program.");
 
         Ok(())
+    }
+
+    fn start_data_bridge(
+        sensor_rx: mpsc::Receiver<SensorData>,
+        sensor_tx: mpsc::Sender<SensorData>,
+        pos_rx: mpsc::Receiver<(Vector3<f64>, UnitQuaternion<f64>)>,
+        pos_tx: mpsc::Sender<(navigation::Point, navigation::Point)>,
+    ) {
+        println!("Launching Data bridge thread");
+        let _ = thread::Builder::new()
+            .name("Data bridge".to_string())
+            .spawn(move || {
+                loop {
+                    match sensor_rx.try_recv() {
+                        Ok(sensor_data) => {
+                            if sensor_tx.send(sensor_data).is_err() {
+                                eprintln!("[Sina] positioning system closed (sensor_tx), shutting down.");
+                                break;
+                            }
+                        }
+                        Err(TryRecvError::Disconnected) => {
+                            eprintln!("[Sina] sensor stream closeds, shutting down.");
+                            break;
+                        }
+                        Err(TryRecvError::Empty) => {}
+                    }
+
+                    match pos_rx.try_recv() {
+                        Ok((pos3, orient4)) => {
+                            let pos_point: navigation::Point = (pos3.x, pos3.y).into();
+                            let heading = camera_heading_xy(&orient4);
+                            if pos_tx.send((pos_point, heading)).is_err() {
+                                eprintln!("[Sina] navigator closed (pos_tx), shutting down.");
+                                break;
+                            }
+                        }
+                        Err(TryRecvError::Disconnected) => {
+                            eprintln!("[Sina] positioning system closed, shutting down.");
+                            break;
+                        }
+                        Err(TryRecvError::Empty) => {}
+                    }
+                }
+                eprintln!("[Sina] main loop stopped, end of program.");
+            });
     }
 
     fn start_positioning_system(
@@ -87,6 +103,7 @@ impl Sina {
             (mpsc::Sender<(Vector3<f64>, UnitQuaternion<f64>)>, mpsc::Receiver<(Vector3<f64>, UnitQuaternion<f64>)>)
              = mpsc::channel();
 
+        println!("Launching Positioning system thread");
         let _ = thread::Builder::new()
             .name("Positioning system thread".to_string())
             .spawn(move || {
@@ -110,6 +127,7 @@ impl Sina {
             config.streaming.profile.clone(),
         ];
 
+        println!("Launching Sensor data streaming thread");
         let _ = thread::Builder::new()
             .name("Sensor data streaming thread".to_string())
             .spawn(move || {
@@ -124,16 +142,16 @@ impl Sina {
     fn start_navigator(
         record: RecordingStream,
         data_path: String,
-        goal: (f64, f64)
     ) -> mpsc::Sender<(navigation::Point, navigation::Point)> {
         let (tx, rx):
             (mpsc::Sender<(navigation::Point, navigation::Point)>, mpsc::Receiver<(navigation::Point, navigation::Point)>)
              = mpsc::channel();
 
+        println!("Launching Navigator thread");
         let _ = thread::Builder::new()
             .name("Navigator thread".to_string())
             .spawn(move || {
-                if let Err(e) = navigation::Navigator::new(data_path).launch(record, rx, goal) {
+                if let Err(e) = navigation::Navigator::new(data_path).launch(record, rx) {
                     eprintln!("[Navigator thread] fatal error : {e:?}");
                 }
             });

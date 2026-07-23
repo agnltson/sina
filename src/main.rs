@@ -36,7 +36,7 @@ fn main() -> anyhow::Result<()> {
     let config = config::load_config(config_path)?;
     if let Some(nav_path) = args.nav {
         println!("Launching navigation : {}", nav_path);
-        sina::Sina::new().launch(&config, nav_path, (3.0, 5.0))?;
+        sina::Sina::new().launch(&config, nav_path)?;
     }
 
     Ok(())

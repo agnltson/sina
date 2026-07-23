@@ -9831,8 +9831,6 @@ dependencies = [
  "apriltag-sys 0.4.0",
  "base64 0.22.1",
  "clap",
- "crossbeam",
- "crossbeam-channel",
  "csv",
  "ffmpeg-next",
  "i_overlay",

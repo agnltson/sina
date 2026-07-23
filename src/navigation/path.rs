@@ -8,6 +8,10 @@ pub struct Path {
 }
 
 impl Path {
+    pub fn len(&self) -> usize {
+        self.pos.len()
+    }
+
     pub fn from_points(points: Vec<Point>) -> Self {
         Self {
             pos: points,
