@@ -4,6 +4,7 @@ mod device_stream;
 mod sensor_data;
 mod pos_sys;
 mod sina;
+mod apriltag_ffi;
 
 use clap::Parser;
 

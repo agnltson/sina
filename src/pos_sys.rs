@@ -15,16 +15,10 @@ use nalgebra::{
     Translation3,
     Matrix3,
 };
-use apriltag::{
-    Detector,
-    DetectorBuilder,
-    Family,
-    pose::TagParams,
-};
-use apriltag_image::ImageExt;
 use serde::Deserialize;
 
 use crate::{
+    apriltag_ffi::{Detector, TagParams},
     sensor_data::{
         SensorData,
         ImageMessage,
@@ -34,7 +28,7 @@ use crate::{
     },
 };
 
-const POSE_ESTIMATION_ITERS: usize = 50;
+const POSE_ESTIMATION_ITERS: i32 = 50;
 
 const QUAT_NORM_MIN: f64 = 0.5;
 const QUAT_NORM_MAX: f64 = 2.0;
@@ -273,38 +267,28 @@ fn detect_pose(
 ) -> Option<(Vector3<f64>, UnitQuaternion<f64>)> {
     let dyn_img = image::load_from_memory(&image.jpeg).ok()?;
     let gray = dyn_img.to_luma8();
-    let apriltag_img = apriltag::Image::from_image_buffer(&gray);
-    let detections = detector.detect(&apriltag_img);
+    let (width, height) = gray.dimensions();
+    // `image::GrayImage` (`ImageBuffer`) est un buffer compact : stride == width.
+    let detections = detector.detect(gray.as_raw(), width as i32, height as i32, width as i32)?;
 
-    println!("Detected: {:?}", detections);
-    for det in detections {
+    println!("Detected: {} tag(s)", detections.len());
+    for det in detections.iter() {
         let tag_id = det.id() as u32;
         let Some(tag_world_pose) = tag_world_poses.get(&tag_id) else {
             continue;
         };
-        let estimations = det.estimate_tag_pose_orthogonal_iteration(tag_params, POSE_ESTIMATION_ITERS);
 
-        let Some(best) = estimations
-            .iter()
-            .min_by(|a, b| a.error.partial_cmp(&b.error).unwrap())
-        else {
+        let Some(best) = det.estimate_pose_orthogonal(tag_params, POSE_ESTIMATION_ITERS) else {
             continue;
         };
 
-        let r = best.pose.rotation();
-        let t = best.pose.translation();
-
-        if r.data().len() != 9 || t.data().len() != 3 {
-            eprintln!("Detection ignored, unexpected data size");
+        let rot_mat = Matrix3::from_row_slice(&best.rotation);
+        let det_val = rot_mat.determinant();
+        if !det_val.is_finite() || (det_val - 1.0).abs() > 0.1 {
+            eprintln!("Invalid rotation matrix (det={det_val}), ignored");
             continue;
         }
-        let rot_mat = Matrix3::from_row_slice(r.data());
-        let det = rot_mat.determinant();
-        if !det.is_finite() || (det - 1.0).abs() > 0.1 {
-            eprintln!("Invalid rotation matrix (det={det}), ignored");
-            continue;
-        }
-        let translation = Vector3::new(t.data()[0], t.data()[1], t.data()[2]);
+        let translation = Vector3::new(best.translation[0], best.translation[1], best.translation[2]);
 
         let camera_from_tag = Isometry3::from_parts(
             Translation3::from(translation),
@@ -330,15 +314,12 @@ pub fn tag_params(config: &Config) -> TagParams {
 }
 
 pub fn build_detector(config: &Config) -> Detector {
-    let family = match config.apriltag.tag_family.as_str() {
-        "tag16h5" => Family::tag_16h5(),
-        "tag25h9" => Family::tag_25h9(),
-        "tag36h11" => Family::tag_36h11(),
-        "tagcircle21h7" => Family::tag_circle_21h7(),
-        "tagcircle49h12" => Family::tag_circle_49h12(),
-        "tagcustom48h12" => Family::tag_custom_48h12(),
-        "tagstandard41h12" => Family::tag_standard_41h12(),
-        "tagstandard52h13" => Family::tag_standard_52h13(),
+    // La liste de familles supportées est vérifiée ici (message d'erreur clair
+    // si mal configuré) ; la création réelle est déléguée à shim.c, qui
+    // connaît le mapping nom -> fonction *_create() de la lib C.
+    match config.apriltag.tag_family.as_str() {
+        "tag16h5" | "tag25h9" | "tag36h11" | "tagcircle21h7" | "tagcircle49h12"
+        | "tagcustom48h12" | "tagstandard41h12" | "tagstandard52h13" => {}
         other => panic!("Unknow AprilTag family : {other}.\n
             Available families are:\n
             \t- tag16h5\n
@@ -352,14 +333,12 @@ pub fn build_detector(config: &Config) -> Detector {
             "),
     };
 
-    let mut detector = DetectorBuilder::new()
-        .add_family_bits(family, 1)
-        .build()
-        .expect("AprilTag Detector build failed");
-
-    detector.set_thread_number(num_cpus::get() as u8);
-    detector.set_decimation(2.0);
-    detector.set_refine_edges(true);
-
-    detector
+    Detector::new(
+        &config.apriltag.tag_family,
+        num_cpus::get() as u8,
+        2.0,  // quad_decimate, identique au comportement précédent (set_decimation(2.0))
+        0.0,  // quad_sigma, jamais réglé avant -> valeur par défaut de la lib C
+        true, // refine_edges, identique au comportement précédent
+    )
+    .expect("AprilTag Detector build failed")
 }
