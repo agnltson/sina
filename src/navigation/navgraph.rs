@@ -221,6 +221,14 @@ impl NavGraph {
             .collect()
     }
 
+    pub fn border_polygons(&self) -> Vec<Vec<Point>> {
+        self.room_topology.border_polygons()
+    }
+
+    pub fn hole_polygons(&self) -> Vec<Vec<Point>> {
+        self.room_topology.hole_polygons()
+    }
+
     pub fn edges_as_points(&self) -> Vec<(Point, Point)> {
         self.edges.iter().enumerate()
             .flat_map(|(i, edges)| {
@@ -228,6 +236,18 @@ impl NavGraph {
                 edges.iter().map(move |e| (a, self.nodes[e.to].centroid))
             })
             .collect()
+    }
+
+    pub fn wall_segments(&self) -> Vec<(Point, Point)> {
+        self.room_data.wall_segments()
+    }
+
+    pub fn door_segments(&self) -> Vec<(Point, Point)> {
+        self.room_data.door_segments()
+    }
+
+    pub fn bbox_polygons(&self) -> Vec<Vec<Point>> {
+        self.room_data.bbox_polygons()
     }
 }
 

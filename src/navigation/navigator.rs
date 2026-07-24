@@ -104,8 +104,13 @@ impl Navigator {
 
     fn static_geometry(&self) -> rendering::StaticGeometry {
         rendering::StaticGeometry {
-            navmesh_polygons: self.navgraph.polygon_vertices(),
-            navgraph_edges: self.navgraph.edges_as_points(),
+            walls: self.navgraph.wall_segments(),
+            doors: self.navgraph.door_segments(),
+            bboxes: self.navgraph.bbox_polygons(),
+            borders: if cfg!(debug_assertions) { self.navgraph.border_polygons() } else { Vec::new() },
+            holes: if cfg!(debug_assertions) { self.navgraph.hole_polygons() } else { Vec::new() },
+            navmesh_polygons: if cfg!(debug_assertions) { self.navgraph.polygon_vertices() } else { Vec::new() },
+            navgraph_edges: if cfg!(debug_assertions) { self.navgraph.edges_as_points() } else { Vec::new() },
         }
     }
 

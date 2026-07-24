@@ -74,6 +74,14 @@ impl RoomTopology {
         }
         false
     }
+
+    pub fn border_polygons(&self) -> Vec<Vec<Point>> {
+        self.borders.iter().map(|p| p.vertices.clone()).collect()
+    }
+
+    pub fn hole_polygons(&self) -> Vec<Vec<Point>> {
+        self.holes.iter().map(|p| p.vertices.clone()).collect()
+    }
 }
 
 impl From<&Data> for RoomTopology {
