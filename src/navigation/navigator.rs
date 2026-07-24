@@ -47,9 +47,11 @@ impl Navigator {
         record: RecordingStream,
         pos_rx: mpsc::Receiver<(Point, Point)>,
     ) -> anyhow::Result<()> {
-        self.log_plan(&record, "navigator")?;
+        if cfg!(debug_assertions) {
+            self.log_plan(&record, "navigator")?;
+        }
 
-        let mut goal_point: Option<Point> = None;
+        let mut goal_point: Option<Point> = Some((-5.5, -6.0).into());
 
         loop {
             match pos_rx.recv() {
@@ -71,9 +73,11 @@ impl Navigator {
                         }
                     }
 
-                    self.log_path(&record, "navigator")?;
-                    self.log_position(&record, "navigator/position")?;
-                    self.log_heading(&record, "navigator/position")?;
+                    if cfg!(debug_assertions) {
+                        self.log_path(&record, "navigator")?;
+                        self.log_position(&record, "navigator/position")?;
+                        self.log_heading(&record, "navigator/position")?;
+                    }
                 },
                 Err(_) => {
                     eprintln!("[Navigator] position channel closed, shutting down.");
@@ -97,6 +101,7 @@ impl Navigator {
         }
     }
 
+    #[cfg(debug_assertions)]
     fn log_plan(&self, record: &RecordingStream, log_path: &str) -> anyhow::Result<()> {
         self.navgraph.log(
             record,
@@ -105,6 +110,7 @@ impl Navigator {
         Ok(())
     }
 
+    #[cfg(debug_assertions)]
     fn log_path(&self, record: &RecordingStream, log_path: &str) -> anyhow::Result<()> {
         if let Some(path) = &self.path {
             path.log(
@@ -115,6 +121,7 @@ impl Navigator {
         Ok(())
     }
 
+    #[cfg(debug_assertions)]
     fn log_position(
         &self,
         record: &RecordingStream,
@@ -134,6 +141,7 @@ impl Navigator {
         Ok(())
     }
 
+    #[cfg(debug_assertions)]
     fn log_heading(
         &self,
         record: &RecordingStream,

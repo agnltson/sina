@@ -47,6 +47,7 @@ use rerun::{
 };
 
 impl NavMesh {
+    #[cfg(debug_assertions)]
     pub fn log(
         &self,
         rec: &RecordingStream,

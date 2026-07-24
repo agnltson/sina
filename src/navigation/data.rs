@@ -19,6 +19,7 @@ pub struct Data {
 use rerun::{Color, LineStrips2D, RecordingStream};
 
 impl Data {
+    #[cfg(debug_assertions)]
     pub fn log(
         &self,
         rec: &RecordingStream,

@@ -116,11 +116,15 @@ impl PosSys {
         sensor_rx: mpsc::Receiver<SensorData>,
         position_tx: mpsc::Sender<(Vector3<f64>, UnitQuaternion<f64>)>,
     ) -> anyhow::Result<()> {
-        self.log_tags(&record, "navigator/anchors")?;
+        if cfg!(debug_assertions) {
+            self.log_tags(&record, "navigator/anchors")?;
+        }
         loop {
             match sensor_rx.recv() {
                 Ok(SensorData::Image(image)) => {
-                    self.log_image(&record, "camera", image.jpeg.clone())?;
+                    if cfg!(debug_assertions) {
+                        self.log_image(&record, "camera", image.jpeg.clone())?;
+                    }
 
                     if self.worker_handle.is_finished() {
                         eprintln!("Restarting AprilTag worker...");
@@ -168,6 +172,7 @@ impl PosSys {
         (handle, image_tx, pose_rx)
     }
 
+    #[cfg(debug_assertions)]
     pub fn log_image(
         &self,
         rec: &RecordingStream,
@@ -181,6 +186,7 @@ impl PosSys {
         Ok(())
     }
 
+    #[cfg(debug_assertions)]
     fn log_tags(
         &self,
         rec: &RecordingStream,

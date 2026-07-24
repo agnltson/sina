@@ -53,6 +53,7 @@ impl Path {
             .min_by(|a, b| a.2.partial_cmp(&b.2).unwrap())
     }
 
+    #[cfg(debug_assertions)]
     pub fn log(
         &self,
         rec: &RecordingStream,

@@ -53,6 +53,7 @@ impl From<&RoomCDT> for Vec<Polygon> {
 use rerun::{LineStrips2D, Points2D, RecordingStream};
 
 impl RoomCDT {
+    #[cfg(debug_assertions)]
     pub fn log(
         &self,
         rec: &RecordingStream,

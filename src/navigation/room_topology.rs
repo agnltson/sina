@@ -62,6 +62,7 @@ impl RoomTopology {
         Self { borders, holes }
     }
 
+    #[cfg(debug_assertions)]
     pub fn log(
         &self,
         rec: &RecordingStream,
