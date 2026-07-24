@@ -5,6 +5,7 @@ mod sensor_data;
 mod pos_sys;
 mod sina;
 mod apriltag_ffi;
+mod rendering;
 
 use clap::Parser;
 

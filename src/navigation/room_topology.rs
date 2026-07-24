@@ -1,5 +1,4 @@
 use ordered_float::OrderedFloat;
-use rerun::{Color, LineStrips2D, RecordingStream};
 use i_overlay::core::fill_rule::FillRule;
 use i_overlay::core::overlay_rule::OverlayRule;
 use i_overlay::float::single::SingleFloatOverlay;
@@ -60,42 +59,6 @@ impl RoomTopology {
 
     fn new(borders: Vec<Polygon>, holes: Vec<Polygon>) -> Self {
         Self { borders, holes }
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn log(
-        &self,
-        rec: &RecordingStream,
-        log_path: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut border_strips = Vec::new();
-        for border in &self.borders {
-            if border.vertices.is_empty() { continue; }
-            let mut strip: Vec<[f32; 2]> = border.vertices.iter()
-                .map(|p| [p.x.into_inner(), p.y.into_inner()])
-                .collect();
-            strip.push([border.vertices[0].x.into_inner(), border.vertices[0].y.into_inner()]);
-            border_strips.push(strip);
-        }
-        rec.log(
-            format!("{}/topology/borders", log_path).as_str(),
-            &LineStrips2D::new(border_strips).with_colors([Color::from_rgb(0, 200, 255)])
-        )?;
-
-        let mut hole_strips = Vec::new();
-        for hole in &self.holes {
-            if hole.vertices.is_empty() { continue; }
-            let mut strip: Vec<[f32; 2]> = hole.vertices.iter()
-                .map(|p| [p.x.into_inner(), p.y.into_inner()])
-                .collect();
-            strip.push([hole.vertices[0].x.into_inner(), hole.vertices[0].y.into_inner()]);
-            hole_strips.push(strip);
-        }
-        rec.log(
-            format!("{}/topology/holes", log_path).as_str(),
-            &LineStrips2D::new(hole_strips).with_colors([Color::from_rgb(255, 100, 100)])
-        )?;
-        Ok(())
     }
 
     pub fn is_segment_intersecting(&self, segment: (Point, Point)) -> bool {

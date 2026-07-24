@@ -3,7 +3,6 @@ use std::io::prelude::*;
 use ordered_float::OrderedFloat;
 use std::collections::BinaryHeap;
 use std::cmp::Reverse;
-use rerun::{Points2D, RecordingStream, LineStrips2D, Color};
 
 use super::utils::Point;
 use super::parser::parse_raw_data;
@@ -216,52 +215,19 @@ impl NavGraph {
             .map(|(i, _)| i)
     }
 
-    #[cfg(debug_assertions)]
-    pub fn log(
-        &self,
-        rec: &RecordingStream,
-        log_path: &str,
-    ) -> anyhow::Result<()> {
-        let _ = self.room_data.log(&rec, log_path);
-        let _ = self.room_topology.log(&rec, log_path);
-        let _ = self.navmesh.log(&rec, log_path);
+    pub fn polygon_vertices(&self) -> Vec<Vec<Point>> {
+        self.navmesh.polygons.iter()
+            .map(|p| p.vertices.clone())
+            .collect()
+    }
 
-        let points: Vec<[f32; 2]> = self
-            .nodes
-            .iter()
-            .map(|n| [
-                n.centroid.x.into_inner(),
-                n.centroid.y.into_inner(),
-            ])
-            .collect();
-
-        rec.log(
-            format!("{}/navgraph/nodes", log_path).as_str(),
-            &Points2D::new(points),
-        )?;
-
-        let mut edge_lines = Vec::new();
-
-        for (i, edges) in self.edges.iter().enumerate() {
-            let a = self.nodes[i].centroid;
-
-            for edge in edges {
-                let b = self.nodes[edge.to].centroid;
-
-                edge_lines.push(vec![
-                    [a.x.into_inner(), a.y.into_inner()],
-                    [b.x.into_inner(), b.y.into_inner()],
-                ]);
-            }
-        }
-
-        rec.log(
-            format!("{}/navgraph/edges", log_path).as_str(),
-            &LineStrips2D::new(edge_lines)
-                .with_colors([Color::from_rgb(80, 80, 255)]),
-        )?;
-
-        Ok(())
+    pub fn edges_as_points(&self) -> Vec<(Point, Point)> {
+        self.edges.iter().enumerate()
+            .flat_map(|(i, edges)| {
+                let a = self.nodes[i].centroid;
+                edges.iter().map(move |e| (a, self.nodes[e.to].centroid))
+            })
+            .collect()
     }
 }
 

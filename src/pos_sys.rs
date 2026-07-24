@@ -5,7 +5,6 @@ use std::{
     fs,
     collections::HashMap
 };
-use rerun::RecordingStream;
 use nalgebra::{
     Vector2,
     Vector3,
@@ -103,7 +102,6 @@ impl PosSys {
             let tag_params = tag_params(config);
 
             while let Ok(image) = image_rx.recv() {
-                println!("Worker is running");
                 if let Some(pose) = detect_pose(&mut detector, &tag_params, tag_world_poses, &image) {
                     let _ = pose_tx.send(pose);
                 }
@@ -112,19 +110,12 @@ impl PosSys {
 
     pub fn launch(
         &mut self,
-        record: RecordingStream,
         sensor_rx: mpsc::Receiver<SensorData>,
         position_tx: mpsc::Sender<(Vector3<f64>, UnitQuaternion<f64>)>,
     ) -> anyhow::Result<()> {
-        if cfg!(debug_assertions) {
-            self.log_tags(&record, "navigator/anchors")?;
-        }
         loop {
             match sensor_rx.recv() {
                 Ok(SensorData::Image(image)) => {
-                    if cfg!(debug_assertions) {
-                        self.log_image(&record, "camera", image.jpeg.clone())?;
-                    }
 
                     if self.worker_handle.is_finished() {
                         eprintln!("Restarting AprilTag worker...");
@@ -170,57 +161,6 @@ impl PosSys {
         });
 
         (handle, image_tx, pose_rx)
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn log_image(
-        &self,
-        rec: &RecordingStream,
-        log_path: &str,
-        jpeg: Vec<u8>,
-    ) -> anyhow::Result<()> {
-        rec.log(
-            format!("{}/camera/image", log_path).as_str(),
-            &rerun::EncodedImage::from_file_contents(jpeg),
-        )?;
-        Ok(())
-    }
-
-    #[cfg(debug_assertions)]
-    fn log_tags(
-        &self,
-        rec: &RecordingStream,
-        log_path: &str,
-        ) -> anyhow::Result<()> {
-        const ARROW_LENGTH: f64 = 0.3;
-
-        for (tag_id, pose) in &self.tag_world_poses {
-            let position = pose.translation.vector;
-            let facing = pose.rotation.transform_vector(&Vector3::new(0.0, 0.0, -1.0)) * ARROW_LENGTH;
-
-            let facing_xy = Vector2::new(facing.x, facing.y);
-            let facing_xy = if facing_xy.norm() > 1e-6 {
-                facing_xy.normalize() * ARROW_LENGTH
-            } else {
-                Vector2::new(0.0, 0.0)
-            };
-
-            rec.log(
-                format!("{}/tags/{tag_id}", log_path).as_str(),
-                &rerun::Points2D::new([[position.x as f32, position.y as f32]])
-                    .with_colors([rerun::Color::from_rgb(255, 165, 0)])
-                    .with_radii([0.05]),
-            )?;
-
-            rec.log(
-                format!("{}/tags/{tag_id}/facing", log_path).as_str(),
-                &rerun::Arrows2D::from_vectors([[facing_xy.x as f32, facing_xy.y as f32]])
-                    .with_origins([[position.x as f32, position.y as f32]])
-                    .with_colors([rerun::Color::from_rgb(255, 165, 0)]),
-            )?;
-        }
-
-        Ok(())
     }
 }
 
@@ -274,10 +214,8 @@ fn detect_pose(
     let dyn_img = image::load_from_memory(&image.jpeg).ok()?;
     let gray = dyn_img.to_luma8();
     let (width, height) = gray.dimensions();
-    // `image::GrayImage` (`ImageBuffer`) est un buffer compact : stride == width.
     let detections = detector.detect(gray.as_raw(), width as i32, height as i32, width as i32)?;
 
-    println!("Detected: {} tag(s)", detections.len());
     for det in detections.iter() {
         let tag_id = det.id() as u32;
         let Some(tag_world_pose) = tag_world_poses.get(&tag_id) else {

@@ -1,4 +1,3 @@
-use rerun::{Points2D, LineStrips2D, RecordingStream, Color};
 use ordered_float::OrderedFloat;
 use super::Point;
 
@@ -8,6 +7,11 @@ pub struct Path {
 }
 
 impl Path {
+
+    pub fn points(&self) -> &[Point] {
+        &self.pos
+    }
+
     pub fn len(&self) -> usize {
         self.pos.len()
     }
@@ -51,33 +55,5 @@ impl Path {
                 (i, t, pos.dist_to(proj))
             })
             .min_by(|a, b| a.2.partial_cmp(&b.2).unwrap())
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn log(
-        &self,
-        rec: &RecordingStream,
-        log_path: &str,
-        ) -> anyhow::Result<()> {
-        let points: Vec<[f32; 2]> = self
-            .pos
-            .iter()
-            .map(|p| [p.x.into_inner(), p.y.into_inner()])
-            .collect();
-
-        rec.log(
-            format!("{}/path/points", log_path).as_str(),
-            &Points2D::new(points.clone()),
-        )?;
-
-        if points.len() >= 2 {
-            rec.log(
-                format!("{}/path/line", log_path).as_str(),
-                &LineStrips2D::new(vec![points])
-                    .with_colors([Color::from_rgb(255, 165, 0)]), // orange
-            )?;
-        }
-
-        Ok(())
     }
 }

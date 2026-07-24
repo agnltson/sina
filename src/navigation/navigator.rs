@@ -1,9 +1,7 @@
-use std::sync::mpsc;
-use rerun::{
-    RecordingStream,
-    Color,
-    Points2D,
-    Arrows2D,
+use std::{
+    sync::mpsc,
+    time::Duration,
+    thread,
 };
 
 use super::{
@@ -11,6 +9,7 @@ use super::{
     path::Path,
     Point,
 };
+use crate::rendering;
 
 pub struct Navigator {
     position: Option<Point>,
@@ -23,6 +22,7 @@ pub struct Navigator {
 impl Navigator {
     const REPLAN_THRESHOLD: f32 = 1.5;
     const SEARCH_WINDOW: usize = 5;
+    const POLL_INTERVAL: Duration = Duration::from_millis(10);
 
     pub fn new(filepath: String) -> Self {
         let navgraph = NavGraph::new(&filepath);
@@ -44,48 +44,77 @@ impl Navigator {
 
     pub fn launch(
         &mut self,
-        record: RecordingStream,
         pos_rx: mpsc::Receiver<(Point, Point)>,
+        render_tx: mpsc::Sender<rendering::RenderUpdate>,
+        click_rx: mpsc::Receiver<Point>,
     ) -> anyhow::Result<()> {
-        if cfg!(debug_assertions) {
-            self.log_plan(&record, "navigator")?;
-        }
+        let _ = render_tx.send(rendering::RenderUpdate::Static(self.static_geometry()));
 
-        let mut goal_point: Option<Point> = Some((-5.5, -6.0).into());
+        let mut goal_point: Option<Point> = None;
+        let mut pos_disconnected = false;
 
         loop {
-            match pos_rx.recv() {
+            let mut dirty = false;
+
+            match pos_rx.try_recv() {
                 Ok((pos, head)) => {
                     self.position = Some(pos);
                     self.heading = Some(head);
+                    dirty = true;
 
                     if let Some(goal) = goal_point {
-                        if self.path.is_none() {
+                        if goal_point.is_some() && self.need_replan(pos) {
                             self.path = self.compute_path(pos, goal);
                             self.path_idx = 0;
                         }
-                    }
-
-                    if goal_point.is_some() && self.need_replan(pos) {
-                        if let Some(goal) = goal_point {
-                            self.path = self.compute_path(pos, goal);
-                            self.path_idx = 0;
-                        }
-                    }
-
-                    if cfg!(debug_assertions) {
-                        self.log_path(&record, "navigator")?;
-                        self.log_position(&record, "navigator/position")?;
-                        self.log_heading(&record, "navigator/position")?;
                     }
                 },
-                Err(_) => {
+                Err(mpsc::TryRecvError::Empty) => {},
+                Err(mpsc::TryRecvError::Disconnected) => {
                     eprintln!("[Navigator] position channel closed, shutting down.");
+                    pos_disconnected = true;
                     break;
                 }
             }
+
+            match click_rx.try_recv() {
+                Ok(clicked_goal) => {
+                    goal_point = Some(clicked_goal);
+                    if let Some(pos) = self.position {
+                        self.path = self.compute_path(pos, clicked_goal);
+                        self.path_idx = 0;
+                        dirty = true;
+                    }
+                },
+                Err(mpsc::TryRecvError::Empty) => {},
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    eprintln!("[Navigator] navigation window closed shutting down.");
+                    break;
+                }
+            }
+
+            if dirty {
+                let _ = render_tx.send(rendering::RenderUpdate::Dynamic(self.dynamic_state()));
+            }
+
+            thread::sleep(Self::POLL_INTERVAL);
         }
         Ok(())
+    }
+
+    fn static_geometry(&self) -> rendering::StaticGeometry {
+        rendering::StaticGeometry {
+            navmesh_polygons: self.navgraph.polygon_vertices(),
+            navgraph_edges: self.navgraph.edges_as_points(),
+        }
+    }
+
+    fn dynamic_state(&self) -> rendering::DynamicState {
+        rendering::DynamicState {
+            position: self.position,
+            heading: self.heading,
+            path: self.path.as_ref().map(|p| p.points().to_vec()), // voir note plus bas
+        }
     }
 
     fn need_replan(&mut self, pos: Point) -> bool {
@@ -99,63 +128,6 @@ impl Navigator {
                 None => true,
             },
         }
-    }
-
-    #[cfg(debug_assertions)]
-    fn log_plan(&self, record: &RecordingStream, log_path: &str) -> anyhow::Result<()> {
-        self.navgraph.log(
-            record,
-            format!("{}/plan", log_path).as_str(),
-            )?;
-        Ok(())
-    }
-
-    #[cfg(debug_assertions)]
-    fn log_path(&self, record: &RecordingStream, log_path: &str) -> anyhow::Result<()> {
-        if let Some(path) = &self.path {
-            path.log(
-                record,
-                format!("{}/path", log_path).as_str(),
-                )?;
-        }
-        Ok(())
-    }
-
-    #[cfg(debug_assertions)]
-    fn log_position(
-        &self,
-        record: &RecordingStream,
-        log_path: &str,
-    ) -> anyhow::Result<()> {
-        if let Some(pos) = self.position {
-            let (x, y): (f64, f64) = pos.into();
-
-            record.log(
-                format!("{}/position", log_path).as_str(),
-                &Points2D::new([[x as f32, y as f32]])
-                    .with_colors([Color::from_rgb(255, 0, 0)])
-                    .with_radii([0.15]),
-            )?;
-        }
-
-        Ok(())
-    }
-
-    #[cfg(debug_assertions)]
-    fn log_heading(
-        &self,
-        record: &RecordingStream,
-        log_path: &str,
-    ) -> anyhow::Result<()> {
-        if let (Some(pos), Some(heading)) = (self.position, self.heading) {
-            record.log(
-                format!("{}/heading", log_path).as_str(),
-                &Arrows2D::from_vectors([[heading.x.into_inner(), heading.y.into_inner()]])
-                    .with_origins([[pos.x.into_inner(), pos.y.into_inner()]])
-                    .with_colors([Color::from_rgb(0, 255, 0)]),
-            )?;
-        }
-        Ok(())
     }
 }
 
