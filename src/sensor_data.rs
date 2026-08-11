@@ -3,6 +3,7 @@ use base64::Engine;
 
 use std::cmp::Ordering;
 
+#[derive(Clone)]
 pub enum SensorData {
     Image(ImageMessage),
 }

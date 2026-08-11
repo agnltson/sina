@@ -20,7 +20,7 @@ csv = "1.4.0"
 eframe = "0.35.0"
 ffmpeg-next = "8.1.0"
 i_overlay = "7.0.0"
-image = "0.24"
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
 nalgebra = "0.35.0"
 num_cpus = "1.17.0"
 ordered-float = "5.3.0"

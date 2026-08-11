@@ -38,9 +38,10 @@ impl Sina {
         let sensor_rx = Self::start_sensor_stream(config.clone());
         let (sensor_tx, pos_rx) = Self::start_positioning_system(config.clone(), data_path.clone());
         let (pos_tx, render_rx, click_tx) = Self::start_navigator(data_path);
-        Self::start_data_bridge(sensor_rx, sensor_tx, pos_rx, pos_tx);
+        let (sensor_render_tx, sensor_render_rx) = mpsc::channel();
+        Self::start_data_bridge(sensor_rx, sensor_tx, sensor_render_tx, pos_rx, pos_tx);
 
-        rendering::render(render_rx, click_tx)?;
+        rendering::render(render_rx, sensor_render_rx, click_tx)?;
 
         Ok(())
     }
@@ -48,6 +49,7 @@ impl Sina {
     fn start_data_bridge(
         sensor_rx: mpsc::Receiver<SensorData>,
         sensor_tx: mpsc::Sender<SensorData>,
+        sensor_render_tx: mpsc::Sender<SensorData>,
         pos_rx: mpsc::Receiver<(Vector3<f64>, UnitQuaternion<f64>)>,
         pos_tx: mpsc::Sender<(navigation::Point, navigation::Point)>,
     ) {
@@ -58,6 +60,10 @@ impl Sina {
                 loop {
                     match sensor_rx.try_recv() {
                         Ok(sensor_data) => {
+                            if sensor_render_tx.send(sensor_data.clone()).is_err() {
+                                eprintln!("[Sina] rendering closed (sensor_render_tx), shutting down.");
+                                break;
+                            }
                             if sensor_tx.send(sensor_data).is_err() {
                                 eprintln!("[Sina] positioning system closed (sensor_tx), shutting down.");
                                 break;

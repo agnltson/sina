@@ -1,7 +1,8 @@
 use std::sync::mpsc;
-use eframe::egui::{self, Color32, Pos2, Rect, Stroke, Vec2, Ui};
+use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Stroke, TextureHandle, TextureOptions, Vec2, Ui};
 
 use crate::navigation::Point;
+use crate::sensor_data::{SensorData, ImageMessage};
 
 #[derive(Debug, Clone)]
 pub struct StaticGeometry {
@@ -47,13 +48,14 @@ impl LayerVisibility {
 
 pub fn render(
     render_rx: mpsc::Receiver<RenderUpdate>,
+    sensor_rx: mpsc::Receiver<SensorData>,
     click_tx: mpsc::Sender<Point>,
 ) -> anyhow::Result<()> {
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
         "SINA - Navigator",
         native_options,
-        Box::new(move |_cc| Ok(Box::new(RenderApp::new(render_rx, click_tx)))),
+        Box::new(move |_cc| Ok(Box::new(RenderApp::new(render_rx, sensor_rx, click_tx)))),
     ).map_err(|e| anyhow::anyhow!("eframe failed: {e}"))?;
     Ok(())
 }
@@ -117,24 +119,38 @@ impl ViewTransform {
 
 struct RenderApp {
     render_rx: mpsc::Receiver<RenderUpdate>,
+    sensor_rx: mpsc::Receiver<SensorData>,
     click_tx: mpsc::Sender<Point>,
     static_geo: Option<StaticGeometry>,
     dynamic: DynamicState,
     view: ViewTransform,
     view_fitted: bool,
     layers: LayerVisibility,
+    latest_image: Option<ImageMessage>,
+    image_texture: Option<TextureHandle>,
+    last_decoded_timestamp: Option<u64>,
+    show_camera_window: bool,
 }
 
 impl RenderApp {
-    fn new(render_rx: mpsc::Receiver<RenderUpdate>, click_tx: mpsc::Sender<Point>) -> Self {
+    fn new(
+        render_rx: mpsc::Receiver<RenderUpdate>,
+        sensor_rx: mpsc::Receiver<SensorData>,
+        click_tx: mpsc::Sender<Point>,
+    ) -> Self {
         Self {
             render_rx,
+            sensor_rx,
             click_tx,
             static_geo: None,
             dynamic: DynamicState::default(),
             view: ViewTransform::identity(),
             view_fitted: false,
             layers: LayerVisibility::default_for_build(),
+            latest_image: None,
+            image_texture: None,
+            last_decoded_timestamp: None,
+            show_camera_window: true,
         }
     }
 
@@ -148,6 +164,52 @@ impl RenderApp {
                 RenderUpdate::Dynamic(state) => {
                     self.dynamic = state;
                 }
+            }
+        }
+    }
+
+    fn drain_sensor_data(&mut self) {
+        // On ne garde que la dernière image reçue : pas besoin d'afficher
+        // toutes les images intermédiaires, seule la plus récente compte.
+        let mut newest: Option<ImageMessage> = None;
+        while let Ok(data) = self.sensor_rx.try_recv() {
+            match data {
+                SensorData::Image(img) => {
+                    newest = Some(img);
+                }
+            }
+        }
+        if let Some(img) = newest {
+            self.latest_image = Some(img);
+        }
+    }
+
+    fn update_image_texture(&mut self, ctx: &egui::Context) {
+        let Some(img) = &self.latest_image else { return };
+
+        // On ne redécode/recharge la texture que si on a une nouvelle image
+        // à afficher (évite de redécoder le même JPEG à chaque frame).
+        let needs_update = match &self.image_texture {
+            None => true,
+            Some(_) => self.last_decoded_timestamp != Some(img.timestamp_ns),
+        };
+
+        if !needs_update {
+            return;
+        }
+
+        match decode_jpeg_to_color_image(&img.jpeg) {
+            Ok(color_image) => {
+                let texture = ctx.load_texture(
+                    "sensor_camera_image",
+                    color_image,
+                    TextureOptions::LINEAR,
+                );
+                self.image_texture = Some(texture);
+                self.last_decoded_timestamp = Some(img.timestamp_ns);
+            }
+            Err(e) => {
+                eprintln!("[Rendering] failed to decode JPEG frame: {e:?}");
             }
         }
     }
@@ -200,10 +262,41 @@ impl RenderApp {
                 ui.checkbox(&mut self.layers.topology, "Topology (borders / holes)");
                 ui.checkbox(&mut self.layers.navmesh, "Navmesh");
                 ui.checkbox(&mut self.layers.navgraph, "Navgraph (edges)");
+                ui.checkbox(&mut self.show_camera_window, "Camera feed");
 
                 ui.separator();
                 if ui.button("Recenter view").clicked() {
                     self.view_fitted = false;
+                }
+            });
+    }
+
+    fn draw_camera_window(&mut self, ctx: &egui::Context) {
+        if !self.show_camera_window {
+            return;
+        }
+
+        egui::Window::new("Camera")
+            .default_pos(Pos2::new(12.0, 200.0))
+            .resizable(true)
+            .collapsible(true)
+            .show(ctx, |ui| {
+                match &self.image_texture {
+                    Some(texture) => {
+                        let size = texture.size_vec2();
+                        // On limite la taille d'affichage pour ne pas déborder
+                        // de l'écran tout en gardant le ratio d'aspect.
+                        let max_width = 480.0;
+                        let scale = (max_width / size.x).min(1.0);
+                        ui.image((texture.id(), size * scale));
+
+                        if let Some(img) = &self.latest_image {
+                            ui.label(format!("timestamp_ns: {}", img.timestamp_ns));
+                        }
+                    }
+                    None => {
+                        ui.label("En attente d'image...");
+                    }
                 }
             });
     }
@@ -212,8 +305,11 @@ impl RenderApp {
 impl eframe::App for RenderApp {
     fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
         self.drain_updates();
+        self.drain_sensor_data();
+        self.update_image_texture(ui.ctx());
 
         self.draw_layers_menu(ui);
+        self.draw_camera_window(ui.ctx());
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
             let (response, painter) =
@@ -251,6 +347,14 @@ impl eframe::App for RenderApp {
 
         ui.ctx().request_repaint();
     }
+}
+
+fn decode_jpeg_to_color_image(jpeg_bytes: &[u8]) -> anyhow::Result<ColorImage> {
+    let dyn_image = image::load_from_memory_with_format(jpeg_bytes, image::ImageFormat::Jpeg)?;
+    let rgba = dyn_image.to_rgba8();
+    let size = [rgba.width() as usize, rgba.height() as usize];
+    let pixels = rgba.into_raw();
+    Ok(ColorImage::from_rgba_unmultiplied(size, &pixels))
 }
 
 fn draw_polygon_outline(painter: &egui::Painter, view: &ViewTransform, poly: &[Point], stroke: Stroke) {
