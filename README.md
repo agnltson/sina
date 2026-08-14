@@ -36,7 +36,7 @@ cargo run -- --help
 
 ## How to use the preprocessing tools
 Record a room with the glasses.
-The inside [Aria studio](https://facebookresearch.github.io/projectaria_tools/docs/ARK/aria_studio) you can request SLAM on
+Then inside [Aria studio](https://facebookresearch.github.io/projectaria_tools/docs/ARK/aria_studio) you can request SLAM on
 your recording.
 
 ### SceneScript
